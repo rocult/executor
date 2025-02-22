@@ -2,7 +2,7 @@ use std::{env, fs};
 use std::path::PathBuf;
 
 fn insert_vm_shuffles_dirs(lua_h: &mut String) {
-    let byte_position = lua_h.find("\n\n\n").expect("could not find insert place");
+    let byte_position = lua_h.find("\n\n\n").or_else(|| lua_h.find("\r\n\r\n\r\n")).expect("could not find insert place");
 
     // Add the definitions after the found position
     lua_h.insert_str(byte_position + 4, r#"
@@ -81,7 +81,7 @@ fn add_vm_shuffles_macro(file: &mut String) {
 
         // Replace all separators between the lines with a comma
         for k in (i + 2)..j {
-            if k == j {
+            if k == j - 1 {
                 lines[k] = lines[k].replace(char, "");
             } else {
                 lines[k] = lines[k].replace(char, ",");
