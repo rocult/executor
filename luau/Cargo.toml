@@ -4,5 +4,11 @@ version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 
+[dependencies]
+syn = { version = "2.0", features = ["full"] }
+
 [build-dependencies]
 bindgen = "0.71.0"
+syn = { version = "2.0", features = ["full"] }
+quote = "1.0"
+prettyplease = "0.2.29"

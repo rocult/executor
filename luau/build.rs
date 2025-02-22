@@ -1,6 +1,8 @@
 use std::{env, fs};
 use std::path::PathBuf;
 
+use quote::ToTokens;
+
 fn insert_vm_shuffles_dirs(lua_h: &mut String) {
     let byte_position = lua_h.find("\n\n\n").or_else(|| lua_h.find("\r\n\r\n\r\n")).expect("could not find insert place");
 
@@ -53,9 +55,9 @@ fn add_vm_shuffles_macro(file: &mut String) {
             continue;
         }
 
-        // Find the next empty line
+        // Find the next empty line or end brace
         let mut j = i + 2;
-        while j < lines.len() && !lines[j].trim().is_empty() {
+        while j < lines.len() && (!lines[j].trim().is_empty() && !lines[j].trim().contains("}")) {
             j += 1;
         }
 
@@ -144,6 +146,40 @@ fn add_vm_shuffles() {
     }
 }
 
+fn handle_struct(ident: syn::Ident, fields: &mut syn::FieldsNamed) {
+    fields.named.iter_mut().for_each(|x| {
+        if let Some(ty) = type_to_vm(&format!("{}{}", ident, x.ident.as_ref().unwrap()), &x.ty.clone().into_token_stream().to_string()) {
+            x.ty = ty;
+        }
+    });
+}
+
+include!("./src/encryptions.rs");
+
+fn do_encryptions(syntax_tree: &mut syn::File) {
+    syntax_tree
+        .items
+        .iter_mut()
+        .for_each(|x| {
+            match x {
+                syn::Item::Struct(x) => {
+                    match &mut x.fields {
+                        syn::Fields::Named(fields) => handle_struct(x.ident.clone(), fields),
+                        _ => {},
+                    }
+                },
+                _ => {},
+            }
+        });
+}
+
+const BINDINGS_REPLACE: &[(&str, &str)] = &[
+    (
+        "pub static mut Luau_list: *mut Luau_FValue<T>;",
+        "pub static mut Luau_list: *mut Luau_FValue<i32>;"
+    ),
+];
+
 fn main() {
     // Add (and update) VM shuffles
     add_vm_shuffles();
@@ -151,6 +187,7 @@ fn main() {
     // Configure the bindgen
     let bindings = bindgen::Builder::default()
         .header("../official_luau/VM/src/lobject.h")
+        .header("../official_luau/VM/src/lstate.h")
         .clang_args([
             "-I../official_luau/VM/include",
             "-I../official_luau/Common/include",
@@ -172,13 +209,15 @@ fn main() {
     let mut bindings_content = fs::read_to_string(&bindings_path)
         .expect("Couldn't read bindings!");
 
-    // Modify the bindings to fix the issue with Luau_FValue
-    bindings_content = bindings_content.replace(
-        "pub static mut Luau_list: *mut Luau_FValue<T>;",
-        "pub static mut Luau_list: *mut Luau_FValue<i32>;"
-    );
+    // Modify the bindings to fix the issue with Luau_FValue and encryptions
+    for (from, to) in BINDINGS_REPLACE {
+        bindings_content = bindings_content.replace(from, to);
+    }
+
+    let mut syntax_tree = syn::parse_file(&bindings_content).unwrap();
+    do_encryptions(&mut syntax_tree);
 
     // Write the modified bindings back to the file
-    fs::write(&bindings_path, bindings_content)
+    fs::write(&bindings_path, prettyplease::unparse(&syntax_tree))
         .expect("Couldn't write modified bindings!");
 }

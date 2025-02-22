@@ -169,6 +169,9 @@ name = "luau"
 version = "0.1.0"
 dependencies = [
  "bindgen",
+ "prettyplease",
+ "quote",
+ "syn",
 ]
 
 [[package]]
