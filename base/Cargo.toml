@@ -1,0 +1,10 @@
+[package]
+name = "base"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+mlua = { version = "0.10.3", features = ["luau"] }
+derive = { path = "../derive" }
+luau = { path = "../luau" }
+once_cell = "1.20.3"
