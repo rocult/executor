@@ -1,6 +1,5 @@
 use std::env;
 
-
 include!("./src/shuffles.rs");
 include!("./src/encryptions/mod.rs");
 
