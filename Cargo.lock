@@ -64,6 +64,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "build-print"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a2128d00b7061b82b72844a351e80acd29e05afc60e9261e2ac90dca9ecc2ac"
+
+[[package]]
 name = "cc"
 version = "1.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -169,6 +175,7 @@ name = "luau"
 version = "0.1.0"
 dependencies = [
  "bindgen",
+ "build-print",
  "prettyplease",
  "quote",
  "syn",

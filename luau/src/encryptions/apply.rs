@@ -8,6 +8,7 @@ pub type VmXorXor<T> = VMValue<T, Xor, Xor, Right, Right>;
 macro_rules! define_vm_types {
     ($($name:ident<$t:ident> = $vm_type:ident<$t2:ident>);*;) => {
         $(
+            #[allow(non_camel_case_types)]
             pub type $name<$t> = $vm_type<$t2>;
         )*
 

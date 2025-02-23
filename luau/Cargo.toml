@@ -5,10 +5,13 @@ edition = "2021"
 build = "build.rs"
 
 [dependencies]
+build-print = "0.1.1"
 syn = { version = "2.0", features = ["full"] }
+quote = "1.0"
 
 [build-dependencies]
 bindgen = "0.71.0"
+build-print = "0.1.1"
 syn = { version = "2.0", features = ["full"] }
 quote = "1.0"
 prettyplease = "0.2.29"

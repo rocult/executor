@@ -6,3 +6,5 @@ include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 mod encryptions;
 pub use encryptions::*;
+
+pub mod shuffles;
