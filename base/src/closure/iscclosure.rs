@@ -1,11 +1,8 @@
-use mlua::{ffi, lua_State, prelude::*};
+use mlua::prelude::*;
 
-pub fn iscclosure(state: &Lua, func: LuaFunction) -> LuaResult<bool> {
-    let mut result = false;
-    unsafe {
-        state.exec_raw::<LuaFunction>(func, |state: *mut lua_State| {
-            result = ffi::lua_iscfunction(state, -1) != 0;
-        })?;
-    }
-    Ok(result)
+use crate::Closure;
+
+pub fn iscclosure(_: &Lua, func: LuaFunction) -> LuaResult<bool> {
+    let closure = Closure::new(&func);
+    Ok(closure.isC != 0)
 }

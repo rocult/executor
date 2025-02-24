@@ -34,4 +34,6 @@ import!(
     closure,
     metatable,
     offsets,
+
+    extensions,
 );
