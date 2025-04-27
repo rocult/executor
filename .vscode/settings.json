@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.nix": "nix",
+        "cmath": "cpp"
+    }
+}

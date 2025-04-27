@@ -1,1 +1,0 @@
-pub const LUA_STATE_NAMECALL: usize = 0x70;

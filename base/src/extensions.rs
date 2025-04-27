@@ -2,13 +2,13 @@ use std::ops::{Deref, DerefMut};
 
 use mlua::Function;
 
-pub struct Closure<'a> {
+pub struct ClosureGuard<'a> {
     _reference: &'a Function,
     inner: &'a mut luau::Closure,
 }
-impl<'a> Closure<'a> {
+impl<'a> ClosureGuard<'a> {
     pub fn new(reference: &'a Function) -> Self {
-        Closure {
+        ClosureGuard {
             _reference: &reference,
             // Safety:
             // This should be fine because it's what Luau does under the hood.
@@ -17,13 +17,13 @@ impl<'a> Closure<'a> {
         }
     }
 }
-impl<'a> Deref for Closure<'a> {
+impl<'a> Deref for ClosureGuard<'a> {
     type Target = luau::Closure;
     fn deref(&self) -> &Self::Target {
         self.inner
     }
 }
-impl<'a> DerefMut for Closure<'a> {
+impl<'a> DerefMut for ClosureGuard<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.inner
     }

@@ -30,10 +30,6 @@ macro_rules! import_register {
     };
 }
 
-import!(
-    closure,
-    metatable,
-    offsets,
-
-    extensions,
-);
+mod closure;
+mod metatable;
+mod extensions;
