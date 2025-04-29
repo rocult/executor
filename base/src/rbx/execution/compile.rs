@@ -8,7 +8,7 @@ pub fn compile_script(source: &str) -> mlua::Result<Vec<u8>> {
     let compiler = mlua::Compiler::new()
         .set_optimization_level(2)
         .set_debug_level(1);
-    let bytecode = compiler.compile(source)?; // need to use Luau::compile 
+    let bytecode = compiler.compile(source)?; // TODO: need to use Luau::compile 
     let bytecode_len = bytecode.len();
 
     // Compress the bytecode, adding RSB1 and uncompressed length, as a prefix

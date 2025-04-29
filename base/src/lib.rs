@@ -1,6 +1,6 @@
-use std::{collections::VecDeque, sync::{mpsc, Arc, Mutex, MutexGuard}, time::Duration};
+use std::{collections::VecDeque, sync::{mpsc, Arc}};
 
-use mlua::{lua_State, Function, Lua, Thread};
+use mlua::{Error, Lua, Thread, Result};
 use once_cell::sync::OnceCell;
 use parking_lot::ReentrantMutex;
 use rbx::{Execution, JobOriginalVFn, TaskScheduler};
@@ -59,7 +59,7 @@ extern "fastcall" fn heartbeat(
     unsafe { vf(arg0, arg1, arg2) }
 }
 
-fn executor_thread(task_scheduler: &TaskScheduler, state: &Lua) -> mlua::Result<()> {
+fn executor_thread(task_scheduler: &TaskScheduler, state: &Lua) -> Result<()> {
     // Initialise _G and shared globals to our own
     let g_table = state.create_table()?;
     let shared = state.create_table()?;
@@ -76,7 +76,7 @@ fn executor_thread(task_scheduler: &TaskScheduler, state: &Lua) -> mlua::Result<
     // Ran on heartbeat
     let mut script_queue = VecDeque::<String>::new();
     let (tx, rx) = mpsc::channel::<()>();
-    HEARTBEAT_TX.set(tx).expect("unable to set heartbeat tx oncecell");
+    HEARTBEAT_TX.set(tx).map_err(|_| Error::runtime("unable to set heartbeat tx"))?;
     while let Ok(_) = rx.recv() {
         if let Some(script) = script_queue.pop_front() {
             if let Err(e) = state.send(script, true, 0, task_scheduler) {
@@ -87,7 +87,7 @@ fn executor_thread(task_scheduler: &TaskScheduler, state: &Lua) -> mlua::Result<
     Ok(())
 }
 
-pub fn main() -> mlua::Result<Thread> {
+pub fn main() -> Result<Thread> {
     // Initialise the scheduler
     let mut task_scheduler = TaskScheduler::new();
     let lua_state = task_scheduler.lua_state()?;

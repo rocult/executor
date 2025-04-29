@@ -1,6 +1,6 @@
 use std::{ffi::{c_void, CString}, time::Duration};
 
-use mlua::{ffi::LUA_TFUNCTION, Error, Lua, ObjectLike, Result};
+use mlua::{ffi::LUA_TFUNCTION, Error, Lua, ObjectLike, Result, Thread};
 
 use crate::rbx::{ExtraSpace, ScriptContext, TaskScheduler, GET_CONTEXT_OBJECT, LUA_VM_LOAD, SET_PROTO_CAPABILITIES, TASK_DEFER};
 
@@ -25,7 +25,7 @@ impl From<ThreadCapabilities> for i64 {
 pub trait Execution {
     fn set_thread_identity(&self, identity: u8) -> Result<()>;
     fn set_thread_capabilities(&self, capabilities: ThreadCapabilities) -> Result<()>;
-    fn send(&self, source: String, compile: bool, ms_yield_time: u64, task_scheduler: &TaskScheduler) -> Result<()>;
+    fn send(&self, source: String, compile: bool, ms_yield_time: u64, task_scheduler: &TaskScheduler) -> Result<Thread>;
 }
 
 impl Execution for Lua {
@@ -49,11 +49,13 @@ impl Execution for Lua {
         }
     }
 
-    fn send(&self, source: String, compile: bool, ms_yield_time: u64, task_scheduler: &TaskScheduler) -> Result<()> {
+    fn send(&self, source: String, compile: bool, ms_yield_time: u64, task_scheduler: &TaskScheduler) -> Result<Thread> {
+        // So we don't waste execution time
         if source.is_empty() {
-            return Ok(());
+            return Err(Error::runtime("empty source given"))?;
         }
 
+        // Yield execution for some reason?
         if ms_yield_time > 0 {
             std::thread::sleep(Duration::from_millis(ms_yield_time));
         }
@@ -81,6 +83,7 @@ impl Execution for Lua {
             let mut error: Option<Error> = None;
             unsafe {
                 state.exec_raw::<()>((), |raw_state| {
+                    // Load the script into the VM
                     let base = CString::new("@Base").unwrap(); // should not error since there aren't any nul bytes
                     let load_result = lua_vm_load(raw_state, script.as_ptr() as *const c_void, base.as_ptr(), 0);
                     if load_result != 0 {
@@ -88,6 +91,7 @@ impl Execution for Lua {
                         return
                     }
 
+                    // Set proto capabilities if there is one
                     let closure = *luau::luaA_toobject(raw_state as *mut luau::lua_State, -1);
                     if closure.tt == LUA_TFUNCTION {
                         let closure = (*(closure.value.gc)).cl;
@@ -102,6 +106,7 @@ impl Execution for Lua {
                         set_proto_capabilities(proto.get(), context_object);
                     }
 
+                    // Continue the thread on the next heartbeat
                     let task_defer = *TASK_DEFER.get();
                     task_defer(raw_state);
                 })
@@ -113,8 +118,8 @@ impl Execution for Lua {
 
             Ok(())
         })?;
-        self.create_thread(f)?;
 
-        Ok(())
+        // Finally, create the execution thread
+        self.create_thread(f)
     }
 }
