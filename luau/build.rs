@@ -23,10 +23,12 @@ const BINDINGS_REPLACE: &[(&str, &str)] = &[
 ];
 
 fn main() {
+    println!("cargo:rerun-if-changed=NULL");
+
     // Add (and update) VM shuffles
-    if !do_shuffles() {
-        return
-    }
+    // if !do_shuffles() {
+    //     return
+    // }
 
     // Do some replacements before bindgen
     let official_luau_path = PathBuf::from("../official_luau");
@@ -46,6 +48,7 @@ fn main() {
     let bindings = bindgen::Builder::default()
         .header("../official_luau/VM/src/lobject.h")
         .header("../official_luau/VM/src/lstate.h")
+        .header("../official_luau/VM/src/lapi.h")
         .clang_args([
             "-I../official_luau/VM/include",
             "-I../official_luau/Common/include",

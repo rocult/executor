@@ -1,10 +1,19 @@
-use std::{borrow::Cow, ffi::c_void, ops::Deref, rc::Rc};
+use std::{borrow::Cow, ffi::c_void, ops::Deref, rc::Rc, sync::Arc};
 
-use mlua::{lua_State, Lua};
+use mlua::{lua_State, Lua, Result, Error};
+use parking_lot::lock_api::ReentrantMutex;
 
-use super::{RenderView, ScriptContext, DECRYPT_STATE, GET_GLOBAL_STATE_FOR_INSTANCE};
+use crate::JOB_ORIGINAL_VF;
 
-pub struct TaskJob(*const c_void);
+use super::{RenderView, ScriptContext, DECRYPT_STATE, GET_GLOBAL_STATE_FOR_INSTANCE, GET_TASK_SCHEDULER};
+
+pub type JobOriginalVFn = unsafe extern "fastcall" fn (
+    arg0: *const usize,
+    arg1: *const usize,
+    arg2: *const usize,
+) -> *const usize;
+
+pub struct TaskJob(*const usize);
 impl TaskJob {
     fn name(&self) -> Cow<'_, str> {
         unsafe {
@@ -14,7 +23,7 @@ impl TaskJob {
     }
 }
 impl Deref for TaskJob {
-    type Target = *const c_void;
+    type Target = *const usize;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -22,18 +31,19 @@ impl Deref for TaskJob {
 }
 
 pub struct TaskScheduler {
-    base: *const c_void,
+    base: *const usize,
     lua_state: Option<Rc<Lua>>,
 }
 impl TaskScheduler {
-    fn new() -> Self {
+    pub fn new() -> Self {
+        let get_task_scheduler = unsafe { *GET_TASK_SCHEDULER.get() };
         Self {
-            base: std::ptr::null(),
+            base: unsafe { get_task_scheduler() },
             lua_state: None
         }
     }
 
-    fn iter(&self) -> TaskSchedulerIterator {
+    pub fn iter(&self) -> TaskSchedulerIterator {
         let base = self.base;
         unsafe {
             TaskSchedulerIterator {
@@ -54,16 +64,54 @@ impl TaskScheduler {
         })
     }
 
-    fn lua_state(&mut self) -> Rc<Lua> {
+    pub fn script_context(&self) -> Option<ScriptContext> {
+        self.render_view().map(|x| x.data_model()).and_then(|x| x.script_context())
+    } 
+
+    pub fn hook_job(&self, name: &str, cycle: JobOriginalVFn) -> Result<()> {
+        let Some(job) = self.job_by_name(name).map(|x| x.0) else {
+            return Ok(())
+        };
+        if job.is_null() {
+            return Ok(());
+        }
+
+        unsafe {
+            let orig_vtable = job as *mut *mut c_void;
+            if orig_vtable.is_null() {
+                return Ok(());
+            }
+
+            let mut vtable: Vec<*mut c_void> = vec![std::ptr::null_mut(); 25];
+            std::ptr::copy_nonoverlapping(orig_vtable, vtable.as_mut_ptr(), 25);
+
+            JOB_ORIGINAL_VF
+                .set(Arc::new(ReentrantMutex::new(std::mem::transmute(vtable[2]))))
+                .map_err(|_| Error::runtime("job vf already set"))?;
+            vtable[2] = cycle as *mut c_void;
+
+            *(job as *mut *mut *mut c_void) = vtable.as_mut_ptr(); // TODO: need to check if this is correct
+
+            // Prevent Rust from dropping the vector (which would free our vtable).
+            std::mem::forget(vtable);
+        }
+
+        Ok(())
+    }
+
+    pub fn lua_state(&mut self) -> Result<Rc<Lua>> {
         if let Some(lua_state) = &self.lua_state {
-            return lua_state.clone();
+            return Ok(lua_state.clone());
         }
 
         let mut state_index: [usize; 1] = [0];
         let mut actor_index: [usize; 2] = [0, 0];
 
         // Get a pointer to the global state function.
-        let global_state = self.render_view().map(|x| x.data_model()).and_then(|x| x.script_context()).map(|x| x.global_state()).expect("unable to find global state");
+        let global_state = self
+            .script_context()
+            .map(|x| x.global_state())
+            .ok_or(Error::runtime("unable to find global state"))?;
         let get_global_state = unsafe { *GET_GLOBAL_STATE_FOR_INSTANCE.get() };
 
         // Call the function and add the decryption offset.
@@ -74,12 +122,12 @@ impl TaskScheduler {
         let decrypt_state = unsafe { *DECRYPT_STATE.get() };
         let lua_state = Rc::new(unsafe { Lua::init_from_ptr(decrypt_state(full_addr) as *mut lua_State) });
         self.lua_state = Some(lua_state.clone());
-        lua_state
+        Ok(lua_state)
     }
 }
 
 pub struct TaskSchedulerIterator {
-    base: *const c_void,
+    base: *const usize,
     jobs_end: u64,
     count: u64,
 }
