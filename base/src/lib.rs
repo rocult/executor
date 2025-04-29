@@ -1,5 +1,6 @@
-use std::{collections::VecDeque, sync::{mpsc, Arc}};
+use std::{collections::VecDeque, io::{BufReader, Read}, rc::Rc, sync::{mpsc, Arc, Mutex}};
 
+use interprocess::os::windows::named_pipe::RecvPipeStream;
 use mlua::{Error, Lua, Thread, Result};
 use once_cell::sync::OnceCell;
 use parking_lot::ReentrantMutex;
@@ -59,7 +60,7 @@ extern "fastcall" fn heartbeat(
     unsafe { vf(arg0, arg1, arg2) }
 }
 
-fn executor_thread(task_scheduler: &TaskScheduler, state: &Lua) -> Result<()> {
+fn executor_thread(task_scheduler: &TaskScheduler, state: &Lua, script_queue: Rc<Mutex<VecDeque<String>>>) -> Result<()> {
     // Initialise _G and shared globals to our own
     let g_table = state.create_table()?;
     let shared = state.create_table()?;
@@ -74,10 +75,10 @@ fn executor_thread(task_scheduler: &TaskScheduler, state: &Lua) -> Result<()> {
     state.sandbox(true)?;
     
     // Ran on heartbeat
-    let mut script_queue = VecDeque::<String>::new();
     let (tx, rx) = mpsc::channel::<()>();
     HEARTBEAT_TX.set(tx).map_err(|_| Error::runtime("unable to set heartbeat tx"))?;
     while let Ok(_) = rx.recv() {
+        let mut script_queue = script_queue.lock().map_err(|_| Error::runtime("failed to get lock on script queue"))?;
         if let Some(script) = script_queue.pop_front() {
             if let Err(e) = state.send(script, true, 0, task_scheduler) {
                 println!("error: {e}");
@@ -94,15 +95,25 @@ pub fn main() -> Result<Thread> {
     task_scheduler.hook_job("Heartbeat", heartbeat)?;
     
     // Handles creating and initialising the executor thread
+    let script_queue = Rc::new(Mutex::new(VecDeque::new()));
+    let script_queue_2 = script_queue.clone();
     let f = lua_state.create_function(move |state, ()| {
-        executor_thread(&task_scheduler, state)
+        executor_thread(&task_scheduler, state, script_queue_2.clone())
     })?;
 
     // Create the executor thread
-    let _thread = lua_state.create_thread(f)?;
+    let thread = lua_state.create_thread(f)?;
 
-    // Infinite loop, keeps thread alive
-    loop {
-        std::thread::park();
-    };
+    // Keep reading from named pipe, for scripts to run
+    let rx = RecvPipeStream::connect_by_path(r"\\.\pipe\rblx").map_err(|err| Error::runtime(format!("unable to create named pipe: {err}")))?;
+    let mut rx = BufReader::new(rx);
+    let mut buffer = String::with_capacity(128);
+    while let Ok(_) = rx.read_to_string(&mut buffer) {
+        let mut script_queue = script_queue.lock().map_err(|_| Error::runtime("failed to get lock on script queue"))?;
+        script_queue.push_back(buffer.clone());
+        buffer.clear();
+    }
+
+    // Keep thread active
+    Ok(thread)
 }
