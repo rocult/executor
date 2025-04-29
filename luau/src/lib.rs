@@ -4,7 +4,7 @@
 
 // NOTE: some shuffles aren't properly applied.
 // for example, CommonHeader needs to be done manually and stuff like stringtable, CallInfo, etc.
-// bindings for stuff like lua_State and typenames aren't properly generated either. 
+// bindings for stuff like lua_State and typenames aren't properly generated either.
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 

@@ -85,8 +85,8 @@ impl<T, GetOp, SetOp, GetDir, SetDir> VMValue<T, GetOp, SetOp, GetDir, SetDir> {
     }
 }
 
-impl<T, GetOp, SetOp, GetDir, SetDir> VMValue<T, GetOp, SetOp, GetDir, SetDir> 
-where 
+impl<T, GetOp, SetOp, GetDir, SetDir> VMValue<T, GetOp, SetOp, GetDir, SetDir>
+where
     T: Copy,
     GetOp: OperationTrait,
     GetDir: DirectionTrait,
@@ -99,8 +99,8 @@ where
     }
 }
 
-impl<T, GetOp, SetOp, GetDir, SetDir> VMValue<T, GetOp, SetOp, GetDir, SetDir> 
-where 
+impl<T, GetOp, SetOp, GetDir, SetDir> VMValue<T, GetOp, SetOp, GetDir, SetDir>
+where
     T: Copy,
     SetOp: OperationTrait,
     SetDir: DirectionTrait,
@@ -113,7 +113,8 @@ where
     {
         let base = self as *const _ as usize;
         let input_value = &value as *const _ as usize;
-        let result_ptr = Self::calculate_ptr(base, input_value, SetOp::operation(), SetDir::direction());
+        let result_ptr =
+            Self::calculate_ptr(base, input_value, SetOp::operation(), SetDir::direction());
         self.storage = unsafe { std::ptr::read(result_ptr as *const _) };
     }
 }

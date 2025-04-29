@@ -1,4 +1,1 @@
-import_register!(
-    iscclosure,
-    islclosure,
-);
+import_register!(iscclosure, islclosure,);

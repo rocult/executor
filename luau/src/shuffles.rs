@@ -1,4 +1,9 @@
-use std::{ffi::OsStr, fs::{self, read_to_string, File, OpenOptions}, io::{BufRead, BufReader, Write}, path::PathBuf};
+use std::{
+    ffi::OsStr,
+    fs::{self, read_to_string, File, OpenOptions},
+    io::{BufRead, BufReader, Write},
+    path::PathBuf,
+};
 
 use build_print::warn;
 
@@ -57,7 +62,7 @@ fn read_line(reader: &mut BufReader<File>) -> std::io::Result<Option<(String, us
 
 fn peek_line(reader: &mut BufReader<File>) -> std::io::Result<Option<String>> {
     let Some((line, num_bytes, _)) = read_line(reader)? else {
-        return Ok(None)
+        return Ok(None);
     };
 
     reader.seek_relative(-(num_bytes as i64))?;
@@ -69,34 +74,30 @@ fn is_empty(str: &String) -> bool {
     str.trim().is_empty()
 }
 
-const IGNORED: [&str; 3] = [
-    "lperf",
-    "ludata",
-    "lvmload",
-];
+const IGNORED: [&str; 3] = ["lperf", "ludata", "lvmload"];
 
 fn insert_calls_check(reader: &mut BufReader<File>) -> std::io::Result<bool> {
     // Read the second line
     let Some((line, num_bytes, _)) = read_line(reader)? else {
-        return Ok(false)
+        return Ok(false);
     };
 
     // It's not empty, so unlikely to be a shuffle since it needs 2 new lines
     if !line.is_empty() {
         reader.seek_relative(-(num_bytes as i64))?;
-        return Ok(false)
+        return Ok(false);
     }
 
     // Read the third line which should have code here...
     let Some((line, num_bytes2, _)) = read_line(reader)? else {
         reader.seek_relative(-(num_bytes as i64))?;
-        return Ok(false)
+        return Ok(false);
     };
 
     // Ensure the third line does not start with `#`, indicating it's a directive
     if line.starts_with("#") {
         reader.seek_relative(-((num_bytes + num_bytes2) as i64))?;
-        return Ok(false)
+        return Ok(false);
     }
 
     // Progress the reader, if needed
@@ -104,7 +105,7 @@ fn insert_calls_check(reader: &mut BufReader<File>) -> std::io::Result<bool> {
         reader.seek_relative(-(num_bytes2 as i64))?;
     }
 
-    // i need to check the cursor stuff which empty line and stuff 
+    // i need to check the cursor stuff which empty line and stuff
 
     Ok(true)
 }
@@ -112,21 +113,22 @@ fn insert_calls_check(reader: &mut BufReader<File>) -> std::io::Result<bool> {
 fn insert_calls(path: &PathBuf, reader: BufReader<File>, mut writer: File) -> std::io::Result<()> {
     let mut reader = reader;
     let is_ltm = path.file_stem() == Some(&OsStr::new("ltm"));
-    let x = path.file_stem().and_then(|x| x.to_str()).unwrap_or_default();
+    let x = path
+        .file_stem()
+        .and_then(|x| x.to_str())
+        .unwrap_or_default();
     let is_ignored = IGNORED.contains(&x);
 
     while let Some((line, _, delimiter)) = read_line(&mut reader)? {
-        if !(
-            (is_ltm && line == "    ") ||
-            (is_empty(&line) && !insert_calls_check(&mut reader)?)
-        ) || is_ignored {
+        if !((is_ltm && line == "    ") || (is_empty(&line) && !insert_calls_check(&mut reader)?))
+            || is_ignored
+        {
             writer.write(line.as_bytes())?;
             writer.write(delimiter.as_bytes())?;
             continue;
         }
 
         write!(writer, "{}{}", line, delimiter)?;
-
 
         let mut count = 0;
         let mut char_sep = None;
@@ -140,14 +142,20 @@ fn insert_calls(path: &PathBuf, reader: BufReader<File>, mut writer: File) -> st
                 break;
             }
 
-            if char_sep.is_none() && !(line2.starts_with("//") || line2.starts_with("/*") || line2.starts_with("#")) {
+            if char_sep.is_none()
+                && !(line2.starts_with("//") || line2.starts_with("/*") || line2.starts_with("#"))
+            {
                 let stripped_line = line2.split("//").next().unwrap_or(&line2).trim();
                 if let Some(char) = stripped_line.chars().last() {
                     char_sep = match char {
                         ';' => Some((';', "OTHER")),
                         ',' => Some((',', "COMMA")),
                         x => {
-                            warn!("{}: invalid sep detected: {:?}", path.canonicalize().unwrap().display(), x);
+                            warn!(
+                                "{}: invalid sep detected: {:?}",
+                                path.canonicalize().unwrap().display(),
+                                x
+                            );
                             write!(writer, "{}{}", line2, delimiter2)?;
                             continue;
                         }
@@ -169,13 +177,21 @@ fn insert_calls(path: &PathBuf, reader: BufReader<File>, mut writer: File) -> st
 
         reader.seek_relative(-(num_bytes_count as i64))?;
         let (char, sep) = char_sep.expect("erm");
-        
+
         if count < 3 || count > 10 {
-            warn!("{}: invalid shuffle detected: {}", path.canonicalize().unwrap().display(), count);
+            warn!(
+                "{}: invalid shuffle detected: {}",
+                path.canonicalize().unwrap().display(),
+                count
+            );
             continue;
         }
-        
-        write!(writer, "LUAVM_SHUFFLE{}(LUAVM_SHUFFLE_{},{}", count, sep, delimiter)?;
+
+        write!(
+            writer,
+            "LUAVM_SHUFFLE{}(LUAVM_SHUFFLE_{},{}",
+            count, sep, delimiter
+        )?;
 
         for i in 0..count {
             let (mut line, _, delimiter) = read_line(&mut reader)?.expect("failed to read line?");
@@ -215,19 +231,16 @@ fn process_file(path: &PathBuf) {
     let reader = BufReader::new(file);
     insert_calls(path, reader, temp_file).expect("shuffles: failed.");
 
-    fs::rename(temp_path, path)
-        .expect("shuffles: failed to write new");
+    fs::rename(temp_path, path).expect("shuffles: failed to write new");
 }
 
 pub fn do_shuffles() -> bool {
     // Insert the directives inside of lua.h
-    let mut lua_h = read_to_string(LUAU_VM_LUA_H_PATH)
-        .expect("failed to read lua.h");
+    let mut lua_h = read_to_string(LUAU_VM_LUA_H_PATH).expect("failed to read lua.h");
     if !insert_directives(&mut lua_h) {
-        return false
+        return false;
     };
-    fs::write(LUAU_VM_LUA_H_PATH, lua_h)
-        .expect("failed to write to lua.h");
+    fs::write(LUAU_VM_LUA_H_PATH, lua_h).expect("failed to write to lua.h");
 
     // Process all other VM files, adding calls
     for entry in fs::read_dir(LUAU_VM_PATH).expect("could not read VM directory") {

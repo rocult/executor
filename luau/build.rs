@@ -3,24 +3,18 @@ use std::env;
 include!("./src/shuffles.rs");
 include!("./src/encryptions/mod.rs");
 
-const PRE_REPLACE: [(&str, [(&str, &str); 1]); 1] = [
-    (
-        "VM/src/lobject.h",
-        [
-            (
-                "uint8_t tt; uint8_t marked; uint8_t memcat",
-                "LUAVM_SHUFFLE3(LUAVM_SHUFFLE_OTHER, uint8_t tt, uint8_t marked, uint8_t memcat)"
-            )
-        ]
-    )
-];
+const PRE_REPLACE: [(&str, [(&str, &str); 1]); 1] = [(
+    "VM/src/lobject.h",
+    [(
+        "uint8_t tt; uint8_t marked; uint8_t memcat",
+        "LUAVM_SHUFFLE3(LUAVM_SHUFFLE_OTHER, uint8_t tt, uint8_t marked, uint8_t memcat)",
+    )],
+)];
 
-const BINDINGS_REPLACE: &[(&str, &str)] = &[
-    (
-        "pub static mut Luau_list: *mut Luau_FValue<T>;",
-        "pub static mut Luau_list: *mut Luau_FValue<i32>;"
-    ),
-];
+const BINDINGS_REPLACE: &[(&str, &str)] = &[(
+    "pub static mut Luau_list: *mut Luau_FValue<T>;",
+    "pub static mut Luau_list: *mut Luau_FValue<i32>;",
+)];
 
 fn main() {
     println!("cargo:rerun-if-changed=NULL");
@@ -40,8 +34,7 @@ fn main() {
             file_content = file_content.replace(from, to)
         }
 
-        fs::write(file_path, file_content)
-            .expect("failed to write file");
+        fs::write(file_path, file_content).expect("failed to write file");
     }
 
     // Configure the bindgen
@@ -52,7 +45,8 @@ fn main() {
         .clang_args([
             "-I../official_luau/VM/include",
             "-I../official_luau/Common/include",
-            "-x", "c++",
+            "-x",
+            "c++",
             "-std=c++11",
         ])
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
@@ -67,8 +61,7 @@ fn main() {
         .expect("Couldn't write bindings!");
 
     // Read the generated bindings
-    let mut bindings_content = fs::read_to_string(&bindings_path)
-        .expect("Couldn't read bindings!");
+    let mut bindings_content = fs::read_to_string(&bindings_path).expect("Couldn't read bindings!");
 
     // Modify the bindings to fix some issues
     for (from, to) in BINDINGS_REPLACE {

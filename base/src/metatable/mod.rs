@@ -3,7 +3,6 @@ import_register!(
     setrawmetatable,
     setreadonly,
     isreadonly,
-
     getnamecallmethod,
     setnamecallmethod,
 );
