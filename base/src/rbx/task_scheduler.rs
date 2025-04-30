@@ -3,7 +3,7 @@ use std::{borrow::Cow, ffi::c_void, ops::Deref, rc::Rc, sync::Arc};
 use mlua::{lua_State, Lua, Result, Error};
 use parking_lot::lock_api::ReentrantMutex;
 
-use crate::JOB_ORIGINAL_VF;
+use crate::HB_ORIGINAL_VF;
 
 use super::{RenderView, ScriptContext, DECRYPT_STATE, GET_GLOBAL_STATE_FOR_INSTANCE, GET_TASK_SCHEDULER};
 
@@ -85,7 +85,7 @@ impl TaskScheduler {
             let mut vtable: Vec<*mut c_void> = vec![std::ptr::null_mut(); 25];
             std::ptr::copy_nonoverlapping(orig_vtable, vtable.as_mut_ptr(), 25);
 
-            JOB_ORIGINAL_VF
+            HB_ORIGINAL_VF
                 .set(Arc::new(ReentrantMutex::new(std::mem::transmute(vtable[2]))))
                 .map_err(|_| Error::runtime("job vf already set"))?;
             vtable[2] = cycle as *mut c_void;

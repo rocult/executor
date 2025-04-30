@@ -49,7 +49,7 @@ mod extensions;
 mod metatable;
 mod rbx;
 
-pub static JOB_ORIGINAL_VF: OnceCell<Arc<ReentrantMutex<JobOriginalVFn>>> = OnceCell::new();
+pub static HB_ORIGINAL_VF: OnceCell<Arc<ReentrantMutex<JobOriginalVFn>>> = OnceCell::new();
 pub static HEARTBEAT_TX: OnceCell<mpsc::Sender<()>> = OnceCell::new();
 
 extern "fastcall" fn heartbeat(
@@ -61,7 +61,7 @@ extern "fastcall" fn heartbeat(
         let _ = tx.send(());
     }
 
-    let vf = JOB_ORIGINAL_VF.get().unwrap().lock();
+    let vf = HB_ORIGINAL_VF.get().unwrap().lock();
     unsafe { vf(arg0, arg1, arg2) }
 }
 
