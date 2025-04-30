@@ -6,9 +6,13 @@
 // for example, CommonHeader needs to be done manually and stuff like stringtable, CallInfo, etc.
 // bindings for stuff like lua_State and typenames aren't properly generated either.
 
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+// include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+include!(concat!(env!("OUT_DIR"), "/luau_compiler.rs"));
+include!(concat!(env!("OUT_DIR"), "/luau_vm.rs"));
 
 mod encryptions;
 pub use encryptions::*;
 
 pub mod shuffles;
+
+pub mod compile;

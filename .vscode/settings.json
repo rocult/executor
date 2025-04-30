@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "*.nix": "nix",
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "xstring": "cpp"
     }
 }

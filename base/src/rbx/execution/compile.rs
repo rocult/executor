@@ -1,14 +1,52 @@
-use std::io::{Cursor, Write};
+use std::{ffi::CString, io::{Cursor, Write}};
 
+use luau::compile::BytecodeEncoderTrait;
 use mlua::Error;
 use xxhash_rust::xxh32::xxh32;
 
+pub struct CustomBytecodeEncoder;
+impl BytecodeEncoderTrait for CustomBytecodeEncoder {
+    fn encode(&self, data: *mut u32, count: usize) {
+        unsafe {
+            let mut i = 0_i32;
+            while i < count as i32 {
+                let opcode = data.offset(i as isize);
+                i += luau::getOpLength(*opcode as i32);
+                *opcode *= 227;
+            }
+        }
+    }
+}
+
 pub fn compile_script(source: &str) -> mlua::Result<Vec<u8>> {
     // Compile to bytecode with custom encoder
-    let compiler = mlua::Compiler::new()
-        .set_optimization_level(2)
-        .set_debug_level(1);
-    let bytecode = compiler.compile(source)?; // TODO: need to use Luau::compile 
+    let bytecode = unsafe {
+        use luau::compile::*;
+
+        let source = CString::new(source).map_err(|_| Error::runtime("invalid source"))?;
+        let compile_options = CompileOptions {
+            optimizationLevel: 2,
+            debugLevel: 1,
+            typeInfoLevel: 2,
+            ..Default::default()
+        };
+        let parse_options = ParseOptions {
+            allowDeclarationSyntax: true,
+            captureComments: true,
+            ..Default::default()
+        };
+
+        let rust_encoder = Box::new(CustomBytecodeEncoder);
+        let mut encoder_wrapper = BytecodeEncoderWrapper::new(rust_encoder);
+
+        compile(
+            source.as_ptr(),
+            &compile_options as *const CompileOptions,
+            &parse_options as *const ParseOptions,
+            &mut *(&mut encoder_wrapper as *mut BytecodeEncoderWrapper as *mut BytecodeEncoder)
+        )
+    };
+    let bytecode = bytecode.as_bytes();
     let bytecode_len = bytecode.len();
 
     // Compress the bytecode, adding RSB1 and uncompressed length, as a prefix

@@ -1,4 +1,6 @@
-use std::env;
+use std::{env, path::Path};
+
+use bindgen::Builder;
 
 include!("./src/shuffles.rs");
 include!("./src/encryptions/mod.rs");
@@ -15,6 +17,61 @@ const BINDINGS_REPLACE: &[(&str, &str)] = &[(
     "pub static mut Luau_list: *mut Luau_FValue<T>;",
     "pub static mut Luau_list: *mut Luau_FValue<i32>;",
 )];
+
+fn cpp_bindings() -> Builder {
+    bindgen::builder()
+        .clang_arg("-xc++")
+        .clang_arg("-std=c++17")
+        .layout_tests(false)
+        .allowlist_type("(LUA|lua)(u|U)?.*")
+        .allowlist_function("(LUA|lua)(u|U)?.*")
+        .allowlist_var("(LUA|lua)(u|U)?.*")
+        .prepend_enum_name(false)
+        .size_t_is_usize(true)
+        .c_naming(false)
+        .disable_name_namespacing()
+}
+
+fn vm_bindings(out_dir: &Path) -> std::io::Result<()> {
+    cpp_bindings()
+		.header("../official_luau/VM/include/lua.h")
+		.header("../official_luau/VM/include/lualib.h")
+        .header("../official_luau/VM/src/lobject.h")
+        .header("../official_luau/VM/src/lstate.h")
+        .header("../official_luau/VM/src/lapi.h")
+        .clang_args([
+            "-I../official_luau/VM/include",
+            "-I../official_luau/Common/include",
+        ])
+		.blocklist_function("luaO_pushvfstring")
+        .blocklist_function("lua_pushvfstring")
+		.blocklist_type("va_list")
+		.generate()
+		.expect("Failed to generate VM bindings")
+		.write_to_file(out_dir.join("luau_vm.rs"))
+}
+
+fn compiler_bindings(out_dir: &Path) -> std::io::Result<()> {
+    cpp_bindings()
+		.allowlist_var("(LUA|lua)(u|U)?.*")
+        .allowlist_function(".*getOpLength.*")
+        .allowlist_item("LuauOpcode.*")
+        // .header("../official_luau/Compiler/include/Luau/BytecodeBuilder.h")
+        .header("../official_luau/Common/include/Luau/BytecodeUtils.h")
+        .clang_args([
+            "-I../official_luau/Ast/include",
+            "-I../official_luau/Common/include",
+            "-I../official_luau/Compiler/include",
+        ])
+		.derive_default(true)
+		.derive_copy(true)
+		.derive_partialeq(true)
+		.derive_eq(true)
+		.derive_hash(true)
+		.generate()
+		.expect("Failed to generate Compiler bindings")
+		.write_to_file(out_dir.join("luau_compiler.rs"))
+}
 
 fn main() {
     println!("cargo:rerun-if-changed=NULL");
@@ -37,28 +94,13 @@ fn main() {
         fs::write(file_path, file_content).expect("failed to write file");
     }
 
-    // Configure the bindgen
-    let bindings = bindgen::Builder::default()
-        .header("../official_luau/VM/src/lobject.h")
-        .header("../official_luau/VM/src/lstate.h")
-        .header("../official_luau/VM/src/lapi.h")
-        .clang_args([
-            "-I../official_luau/VM/include",
-            "-I../official_luau/Common/include",
-            "-x",
-            "c++",
-            "-std=c++11",
-        ])
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
-        .generate()
-        .expect("Unable to generate bindings");
-
     // Output the bindings
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let bindings_path = out_path.join("bindings.rs");
-    bindings
-        .write_to_file(&bindings_path)
-        .expect("Couldn't write bindings!");
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let bindings_path = out_dir.join("luau_vm.rs");
+
+    // Build raw bindings
+    compiler_bindings(&out_dir).unwrap();
+    vm_bindings(&out_dir).unwrap();
 
     // Read the generated bindings
     let mut bindings_content = fs::read_to_string(&bindings_path).expect("Couldn't read bindings!");
