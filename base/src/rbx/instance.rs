@@ -43,6 +43,10 @@ impl Instance {
         };
         c_string.to_string_lossy().to_string()
     }
+
+    pub fn find_first_child_of_class(&self, class_name: &str) -> Option<Instance> {
+        self.children().find(|x| x.class_name() == class_name)
+    } 
 }
 
 pub struct InstanceIterator {

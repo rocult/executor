@@ -12,9 +12,6 @@ impl Deref for DataModel {
 }
 impl DataModel {
     pub fn script_context(&self) -> Option<ScriptContext> {
-        self
-            .children()
-            .find(|x| x.class_name() == "ScriptContext")
-            .map(ScriptContext)
+        self.find_first_child_of_class("ScriptContext").map(ScriptContext)
     }
 }
