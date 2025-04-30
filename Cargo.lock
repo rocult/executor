@@ -32,6 +32,7 @@ dependencies = [
  "mlua",
  "once_cell",
  "parking_lot",
+ "vtable-rs",
  "windows",
  "xxhash-rust",
  "zstd",
@@ -315,6 +316,7 @@ dependencies = [
  "prettyplease",
  "quote",
  "syn",
+ "vtable-rs",
 ]
 
 [[package]]
@@ -578,6 +580,26 @@ name = "unicode-width"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fc81956842c57dac11422a97c3b8195a1ff727f06e85c84ed2e8aa277c9a0fd"
+
+[[package]]
+name = "vtable-rs"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "724216e2508f74f765851c89ac5a74e0b53373734635a0925d84968ab2e8214c"
+dependencies = [
+ "vtable-rs-proc-macros",
+]
+
+[[package]]
+name = "vtable-rs-proc-macros"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb88a9024d3ac3ae6fbd44635cfe9a085437ee749fbba4d2b7bf4510cbb118b5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "widestring"

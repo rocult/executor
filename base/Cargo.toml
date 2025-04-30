@@ -11,6 +11,7 @@ parking_lot = "0.12"
 zstd = "0.13"
 xxhash-rust = { version = "0.8", features = ["xxh32"] }
 interprocess = "2.2"
+vtable-rs = "0.1"
 
 [dependencies.windows]
 version = "0.*"

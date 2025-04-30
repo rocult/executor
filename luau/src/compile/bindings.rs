@@ -78,6 +78,6 @@ unsafe extern "C" {
         source: *const i8,
         options: *const CompileOptions,
         parseOptions: *const ParseOptions,
-        encoder: *mut BytecodeEncoder,
+        encoder: *mut dyn crate::compile::BytecodeEncoderVmt,
     ) -> CxxString;
 }

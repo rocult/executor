@@ -1,17 +1,22 @@
 use std::{ffi::CString, io::{Cursor, Write}};
 
-use luau::compile::BytecodeEncoderTrait;
+use luau::compile::BytecodeEncoderVmt;
 use mlua::Error;
+use vtable_rs::VPtr;
 use xxhash_rust::xxh32::xxh32;
 
-pub struct CustomBytecodeEncoder;
-impl BytecodeEncoderTrait for CustomBytecodeEncoder {
-    fn encode(&self, data: *mut u32, count: usize) {
+#[derive(Default)]
+#[repr(C)]
+struct RustBytecodeEncoder {
+    vftable: VPtr<dyn BytecodeEncoderVmt, Self>,
+}
+impl BytecodeEncoderVmt for RustBytecodeEncoder {
+    extern "C" fn encode(&self, data: *mut u32, count: usize) {
         unsafe {
-            let mut i = 0_i32;
-            while i < count as i32 {
-                let opcode = data.offset(i as isize);
-                i += luau::getOpLength(*opcode as i32);
+            let mut i = 0_isize;
+            while i < count as isize {
+                let opcode = data.offset(i);
+                i += luau::getOpLength(*opcode as i32) as isize;
                 *opcode *= 227;
             }
         }
@@ -35,15 +40,15 @@ pub fn compile_script(source: &str) -> mlua::Result<Vec<u8>> {
             captureComments: true,
             ..Default::default()
         };
-
-        let rust_encoder = Box::new(CustomBytecodeEncoder);
-        let mut encoder_wrapper = BytecodeEncoderWrapper::new(rust_encoder);
-
+        let encoder = {
+            Box::leak(Box::new(RustBytecodeEncoder::default()))
+        };
+        
         compile(
             source.as_ptr(),
             &compile_options as *const CompileOptions,
             &parse_options as *const ParseOptions,
-            &mut *(&mut encoder_wrapper as *mut BytecodeEncoderWrapper as *mut BytecodeEncoder)
+            encoder
         )
     };
     let bytecode = bytecode.as_bytes();
