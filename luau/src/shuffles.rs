@@ -5,6 +5,8 @@ use std::{
     path::PathBuf,
 };
 
+use build_print::warn;
+
 const LUAU_VM_PATH: &'static str = "../official_luau/VM";
 const LUAU_VM_LUA_H_PATH: &'static str = concat!("../official_luau/VM", "/include/lua.h");
 
@@ -61,114 +63,106 @@ fn read_line(reader: &mut BufReader<File>) -> std::io::Result<Option<(String, us
 fn insert_calls(mut reader: BufReader<File>, mut writer: File) -> std::io::Result<()> {
     // Track consecutive empty lines.
     let mut consecutive_empty = 0;
-    
+
     while let Some((line, _num_bytes, delimiter)) = read_line(&mut reader)? {
+        // Update the empty-line count.
         if line.trim().is_empty() {
             consecutive_empty += 1;
         } else {
             consecutive_empty = 0;
         }
-        
-        // Write current line as-is.
+
         writer.write_all(line.as_bytes())?;
         writer.write_all(delimiter.as_bytes())?;
-        
-        // When two empty lines in a row are found, count subsequent non-empty lines until next empty line.
+
+        // When two empty lines are encountered, process the next block.
         if consecutive_empty != 2 {
             continue;
         }
-    
-        // Reset counter for counting non-empty lines.
-        let mut nonempty_count = 0;
-        let mut last_char = ';';
-        let mut last_line = None;
-        let mut buffer = Vec::new();
 
-        // Continue reading without writing.
-        while let Some((next_line, _next_bytes, next_delim)) = read_line(&mut reader)? {
-            let trim = next_line.trim();
-            // Empty line found: go back
-            if trim.is_empty() {
-                reader.seek_relative(-(_next_bytes as i64))?;
+        // Prepare to capture a block of non-empty lines.
+        let mut buffer = Vec::new();
+        let mut nonempty_count = 0;
+        let mut last_char = ';'; // fallback value
+        let mut last_line = None;
+
+        // Read the following lines without writing immediately.
+        while let Some((next_line, next_bytes, next_delim)) = read_line(&mut reader)? {
+            let trimmed = next_line.trim();
+            if trimmed.is_empty() {
+                // Undo reading of this empty line.
+                reader.seek_relative(-(next_bytes as i64))?;
                 break;
-            // End of sequence found
-            } else if trim.starts_with("//") || trim.starts_with("}") {
+            } else if trimmed.starts_with("//") || trimmed.starts_with("}") {
                 last_line = Some(format!("{next_line}{next_delim}"));
-                break
+                break;
             }
 
-            // Get code portion before any comment
-            let code_part = if let Some(comment_idx) = trim.find("//") {
-                &trim[..comment_idx]
-            } else {
-                trim
-            };
-            last_char = code_part.trim().chars().last().unwrap_or_default();
-
+            // Obtain the code portion before any trailing comment.
+            let code_part = trimmed.split("//").next().unwrap().trim();
+            if let Some(ch) = code_part.chars().last() {
+                last_char = ch;
+            }
             buffer.push(format!("{next_line}{next_delim}"));
             nonempty_count += 1;
         }
 
-        // Reset our consecutive-empty counter (so that we don't count again immediately).
+        // Reset consecutive_empty so the next block is processed independently.
         consecutive_empty = 0;
-        
-        // Valid shuffles are between 3 and 9
+
+        // If block size is not between 3 and 9, write the block as-is.
         if nonempty_count < 3 || nonempty_count > 9 {
-            // Write the read stuff back
-            buffer.into_iter().map(|x| write!(writer, "{x}")).collect::<std::io::Result<Vec<()>>>()?;
-            write!(writer, "{delimiter}")?;
-            if let Some(last_line) = last_line {
-                write!(writer, "{last_line}")?;
+            for buf_line in buffer {
+                writer.write_all(buf_line.as_bytes())?;
+            }
+            writer.write_all(delimiter.as_bytes())?;
+            if let Some(ref l) = last_line {
+                writer.write_all(l.as_bytes())?;
             }
             continue;
         }
-        
-        // Grab the line seperator, either `;` in regular LOC or like `,` in a table
-        let end = buffer
-            .iter()
-            .nth(buffer.len() - 2)
-            .and_then(|x| {
-                if x.contains(';') {
-                    Some(';')
-                } else {
-                    Some(',')
-                }
-            })
-            .unwrap();
 
-        // Indicates what shuffle sep should be used
-        let sep = match last_char {
+        // Determine the ending separator by inspecting the second-to-last buffered line.
+        let end_sep = buffer
+            .get(buffer.len().saturating_sub(2))
+            .map(|s| if s.contains(';') { ';' } else { ',' })
+            .unwrap_or(';');
+
+        // Determine the shuffle flag based on the last code character.
+        let sep_flag = match last_char {
             ';' => "OTHER",
             ',' => "COMMA",
-            _ => "c"
+            _ => unreachable!(),
         };
 
-        // Add the initial macro call
-        write!(writer, "LUAVM_SHUFFLE{}(LUAVM_SHUFFLE_{},{}", nonempty_count, sep, delimiter)?;
+        // Begin the shuffle macro call.
+        write!(writer, "LUAVM_SHUFFLE{}(LUAVM_SHUFFLE_{},{}", nonempty_count, sep_flag, delimiter)?;
 
-        // Add each argument, handling correct sep
-        let buf_len = buffer.len() - 1;
-        buffer
-            .into_iter()
-            .enumerate()
-            .map(|(i, x)| {
-                let x = x.replace(';', ",");
-                let x = if i == buf_len { x.replace(',', "") } else { x };
-                write!(writer, "{x}")
-            })
-            .collect::<std::io::Result<Vec<()>>>()?;
+        // Write each buffered line, replacing ';' with ',' where needed.
+        let buf_last = buffer.len().saturating_sub(1);
+        for (i, line) in buffer.into_iter().enumerate() {
+            // Make sure we don't replace any comments
+            let (code, comment) = match line.split_once("//") {
+                Some((code_part, comment_part)) => (code_part, format!("//{}", comment_part)),
+                None => (line.as_str(), String::new()),
+            };
+            
+            let mut processed = code.replace(';', ",");
+            // For the last argument, remove all commas.
+            if i == buf_last {
+                processed = processed.replace(',', "");
+            }
+            write!(writer, "{}{}", processed, comment)?;
+        }
 
-        // Close off the macro call
-        write!(writer, "){end}{delimiter}{delimiter}")?;
-
-        // Finally, write the end of sequence
-        if let Some(last_line) = last_line {
-            write!(writer, "{last_line}")?;
+        // Close off the macro call.
+        write!(writer, "){end_sep}{delimiter}{delimiter}")?;
+        if let Some(ref l) = last_line {
+            writer.write_all(l.as_bytes())?;
         }
     }
     Ok(())
 }
-
 fn append_to_path(p: impl Into<std::ffi::OsString>, s: impl AsRef<OsStr>) -> PathBuf {
     let mut p = p.into();
     p.push(s);
