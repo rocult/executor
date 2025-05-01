@@ -31,55 +31,6 @@ macro_rules! define_vm_types {
 }
 pub(crate) use define_vm_types;
 
-define_vm_types! {
-    // GSTATE_*_ENC
-    global_Statettname = GSTATE_TTNAME_ENC;
-    global_Statetmname = GSTATE_TMNAME_ENC;
-
-    // LSTATE_*_ENC
-    lua_Stateglobal = LSTATE_GLOBAL_ENC;
-    lua_Statestacksize = LSTATE_STACKSIZE_ENC;
-
-    // TSTRING_*_ENC
-    TStringhash = TSTRING_HASH_ENC;
-    TStringlen = TSTRING_LEN_ENC;
-
-    // UDATA_META_ENC
-    Udatametatable = UDATA_META_ENC;
-
-    // CLOSURE_*_ENC
-    Closure__bindgen_ty_1__bindgen_ty_1cont = CLOSURE_CONT_ENC;
-    Closure__bindgen_ty_1__bindgen_ty_1debugname = CLOSURE_DEBUGNAME_ENC;
-    
-    // CLOSURE_FUNC_ENC
-    Closure__bindgen_ty_1__bindgen_ty_1f = CLOSURF_FUNC_ENC;
-    Closure__bindgen_ty_1__bindgen_ty_2p = CLOSURF_FUNC_ENC;
-
-    // PROTO_MEMBER1_ENC
-    Protok = PROTO_MEMBER1_ENC;
-    Protocode = PROTO_MEMBER1_ENC;
-    Protop = PROTO_MEMBER1_ENC;
-
-    // PROTO_MEMBER2_ENC
-    Protolineinfo = PROTO_MEMBER2_ENC;
-    Protoabslineinfo = PROTO_MEMBER2_ENC;
-    Protolocvars = PROTO_MEMBER2_ENC;
-    Protoupvalues = PROTO_MEMBER2_ENC;
-    Protosource = PROTO_MEMBER2_ENC;
-
-    // PROTO_*_ENC
-    Protodebugname = PROTO_DEBUGNAME_ENC;
-    Protodebuginsn = PROTO_DEBUGISN_ENC;
-
-    // PROTO_TYPEINFO_ENC
-    Prototypeinfo = PROTO_TYPEINFO_ENC;
-
-    // TABLE_MEMBER_ENC, TABLE_META_ENC
-    LuaTablearray = TABLE_MEMBER_ENC;
-    LuaTablenode = TABLE_MEMBER_ENC;
-    LuaTablemetatable = TABLE_META_ENC;
-}
-
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 #[repr(C)]
 pub struct VMValue<T, GetOp, SetOp, GetDir, SetDir> {

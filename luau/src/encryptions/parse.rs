@@ -1,4 +1,4 @@
-use super::type_to_vm;
+use crate::type_to_vm;
 
 use quote::ToTokens;
 
