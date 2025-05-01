@@ -5,8 +5,6 @@ use std::{
     path::PathBuf,
 };
 
-use build_print::warn;
-
 const LUAU_VM_PATH: &'static str = "../official_luau/VM";
 const LUAU_VM_LUA_H_PATH: &'static str = concat!("../official_luau/VM", "/include/lua.h");
 
