@@ -115,7 +115,6 @@ fn insert_calls(mut reader: BufReader<File>, mut writer: File) -> std::io::Resul
             for buf_line in buffer {
                 writer.write_all(buf_line.as_bytes())?;
             }
-            writer.write_all(delimiter.as_bytes())?;
             if let Some(ref l) = last_line {
                 writer.write_all(l.as_bytes())?;
             }
@@ -146,7 +145,7 @@ fn insert_calls(mut reader: BufReader<File>, mut writer: File) -> std::io::Resul
                 Some((code_part, comment_part)) => (code_part, format!("//{}", comment_part)),
                 None => (line.as_str(), String::new()),
             };
-            
+
             let mut processed = code.replace(';', ",");
             // For the last argument, remove all commas.
             if i == buf_last {
@@ -156,7 +155,7 @@ fn insert_calls(mut reader: BufReader<File>, mut writer: File) -> std::io::Resul
         }
 
         // Close off the macro call.
-        write!(writer, "){end_sep}{delimiter}{delimiter}")?;
+        write!(writer, "){end_sep}{delimiter}")?;
         if let Some(ref l) = last_line {
             writer.write_all(l.as_bytes())?;
         }
