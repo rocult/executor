@@ -8,19 +8,6 @@ use std::{
 const LUAU_VM_PATH: &'static str = "../official_luau/VM";
 const LUAU_VM_LUA_H_PATH: &'static str = concat!("../official_luau/VM", "/include/lua.h");
 
-const SHUFFLES: &'static str = r#"
-#define LUAVM_SHUFFLE_COMMA ,
-#define LUAVM_SHUFFLE_OTHER ;
-
-#define LUAVM_SHUFFLE3(sep, a1, a2, a3) a2 sep a1 sep a3
-#define LUAVM_SHUFFLE4(sep, a1, a2, a3, a4) a2 sep a1 sep a4 sep a3
-#define LUAVM_SHUFFLE5(sep, a1, a2, a3, a4, a5) a2 sep a4 sep a1 sep a3 sep a5
-#define LUAVM_SHUFFLE6(sep, a1, a2, a3, a4, a5, a6) a6 sep a5 sep a1 sep a2 sep a3 sep a4
-#define LUAVM_SHUFFLE7(sep, a1, a2, a3, a4, a5, a6, a7) a7 sep a2 sep a6 sep a3 sep a5 sep a4 sep a1
-#define LUAVM_SHUFFLE8(sep, a1, a2, a3, a4, a5, a6, a7, a8) a6 sep a2 sep a1 sep a7 sep a3 sep a8 sep a4 sep a5
-#define LUAVM_SHUFFLE9(sep, a1, a2, a3, a4, a5, a6, a7, a8, a9) a2 sep a3 sep a4 sep a1 sep a9 sep a8 sep a5 sep a7 sep a6
-"#;
-
 fn insert_directives(lua_h: &mut String) -> bool {
     if lua_h.contains("LUAVM_SHUFFLE_COMMA") {
         return false;
@@ -31,7 +18,7 @@ fn insert_directives(lua_h: &mut String) -> bool {
         .or_else(|| lua_h.find("\r\n\r\n\r\n"))
         .expect("could not find a valid place to insert directives.");
 
-    lua_h.replace_range(byte_position + 2..byte_position + 6, &SHUFFLES);
+    lua_h.replace_range(byte_position + 2..byte_position + 6, &crate::SHUFFLES);
     true
 }
 

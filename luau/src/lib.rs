@@ -13,6 +13,9 @@ include!(concat!(env!("OUT_DIR"), "/luau_vm.rs"));
 mod encryptions;
 pub use encryptions::*;
 
+mod update;
+pub use update::*;
+
 pub mod shuffles;
 
 pub mod compile;

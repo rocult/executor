@@ -2,7 +2,8 @@ use std::{env, path::Path};
 
 use bindgen::Builder;
 
-include!("./src/shuffles.rs");
+include!("./src/update.rs");
+include!("./src/shuffles/mod.rs");
 include!("./src/encryptions/mod.rs");
 
 const PRE_REPLACE: [(&str, [(&str, &str); 1]); 1] = [(
