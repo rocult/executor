@@ -77,9 +77,9 @@ fn main() {
     println!("cargo:rerun-if-changed=NULL");
 
     // Add (and update) VM shuffles
-    // if !do_shuffles() {
-    //     return
-    // }
+    if !do_shuffles() {
+        return
+    }
 
     // Do some replacements before bindgen
     let official_luau_path = PathBuf::from("../official_luau");
