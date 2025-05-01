@@ -1,17 +1,24 @@
 use std::marker::PhantomData;
 
-pub type VmAddSub<T> = VMValue<T, Add, Sub, Left, Left>;
-pub type VmSubAdd<T> = VMValue<T, Sub, Add, Left, Left>;
-pub type VmSubSub<T> = VMValue<T, Sub, Sub, Right, Right>;
-pub type VmXorXor<T> = VMValue<T, Xor, Xor, Right, Right>;
+pub type Vm0<T> = T;
+pub type Vm1<T> = VMValue<T, Add, Sub, Left, Left>;
+pub type Vm2<T> = VMValue<T, Sub, Add, Left, Left>;
+pub type Vm3<T> = VMValue<T, Sub, Sub, Right, Right>;
+pub type Vm4<T> = VMValue<T, Xor, Xor, Right, Right>;
 
 macro_rules! define_vm_types {
-    ($($name:ident<$t:ident> = $vm_type:ident<$t2:ident>);*;) => {
+    (vmvalue0) => { $crate::Vm0<T> };
+    (vmvalue1) => { $crate::Vm1<T> };
+    (vmvalue2) => { $crate::Vm2<T> };
+    (vmvalue3) => { $crate::Vm3<T> };
+    (vmvalue4) => { $crate::Vm4<T> };
+    ($(#define $name:ident $vm_value:ident)*) => {
         $(
             #[allow(non_camel_case_types)]
-            pub type $name<$t> = $vm_type<$t2>;
+            pub type $name<T> = define_vm_types!($vm_value);
         )*
-
+    };
+    ($($name:ident = $vm_type:ident);*;) => {
         pub fn type_to_vm(ident: &str, ty: &str) -> Option<syn::Type> {
             match ident {
                 $(
@@ -22,43 +29,55 @@ macro_rules! define_vm_types {
         }
     };
 }
+pub(crate) use define_vm_types;
 
 define_vm_types! {
-    global_Statettname<T> = VmXorXor<T>;
-    global_Statetmname<T> = VmXorXor<T>;
+    // GSTATE_*_ENC
+    global_Statettname = GSTATE_TTNAME_ENC;
+    global_Statetmname = GSTATE_TMNAME_ENC;
 
-    lua_Stateglobal<T> = VmXorXor<T>;
-    lua_Statestacksize<T> = VmXorXor<T>;
+    // LSTATE_*_ENC
+    lua_Stateglobal = LSTATE_GLOBAL_ENC;
+    lua_Statestacksize = LSTATE_STACKSIZE_ENC;
 
-    TStringhash<T> = VmSubAdd<T>;
-    TStringlen<T> = VmXorXor<T>;
+    // TSTRING_*_ENC
+    TStringhash = TSTRING_HASH_ENC;
+    TStringlen = TSTRING_LEN_ENC;
 
-    Udatametatable<T> = VmXorXor<T>;
+    // UDATA_META_ENC
+    Udatametatable = UDATA_META_ENC;
 
-    Closure__bindgen_ty_1__bindgen_ty_1f<T> = VmAddSub<T>;
-    Closure__bindgen_ty_1__bindgen_ty_1cont<T> = VmSubSub<T>;
-    Closure__bindgen_ty_1__bindgen_ty_1debugname<T> = VmSubAdd<T>;
+    // CLOSURE_*_ENC
+    Closure__bindgen_ty_1__bindgen_ty_1cont = CLOSURE_CONT_ENC;
+    Closure__bindgen_ty_1__bindgen_ty_1debugname = CLOSURE_DEBUGNAME_ENC;
+    
+    // CLOSURE_FUNC_ENC
+    Closure__bindgen_ty_1__bindgen_ty_1f = CLOSURF_FUNC_ENC;
+    Closure__bindgen_ty_1__bindgen_ty_2p = CLOSURF_FUNC_ENC;
 
-    Closure__bindgen_ty_1__bindgen_ty_2p<T> = VmAddSub<T>;
+    // PROTO_MEMBER1_ENC
+    Protok = PROTO_MEMBER1_ENC;
+    Protocode = PROTO_MEMBER1_ENC;
+    Protop = PROTO_MEMBER1_ENC;
 
-    Protok<T> = VmAddSub<T>;
-    Protocode<T> = VmAddSub<T>;
-    Protop<T> = VmAddSub<T>;
+    // PROTO_MEMBER2_ENC
+    Protolineinfo = PROTO_MEMBER2_ENC;
+    Protoabslineinfo = PROTO_MEMBER2_ENC;
+    Protolocvars = PROTO_MEMBER2_ENC;
+    Protoupvalues = PROTO_MEMBER2_ENC;
+    Protosource = PROTO_MEMBER2_ENC;
 
-    Protolineinfo<T> = VmSubAdd<T>;
-    Protoabslineinfo<T> = VmSubAdd<T>;
-    Protolocvars<T> = VmSubAdd<T>;
-    Protoupvalues<T> = VmSubAdd<T>;
-    Protosource<T> = VmSubAdd<T>;
+    // PROTO_*_ENC
+    Protodebugname = PROTO_DEBUGNAME_ENC;
+    Protodebuginsn = PROTO_DEBUGISN_ENC;
 
-    Protodebugname<T> = VmAddSub<T>;
-    Protodebuginsn<T> = VmSubSub<T>;
+    // PROTO_TYPEINFO_ENC
+    Prototypeinfo = PROTO_TYPEINFO_ENC;
 
-    Prototypeinfo<T> = VmXorXor<T>;
-
-    LuaTablemetatable<T> = VmAddSub<T>;
-    LuaTablearray<T> = VmAddSub<T>;
-    LuaTablenode<T> = VmAddSub<T>;
+    // TABLE_MEMBER_ENC, TABLE_META_ENC
+    LuaTablearray = TABLE_MEMBER_ENC;
+    LuaTablenode = TABLE_MEMBER_ENC;
+    LuaTablemetatable = TABLE_META_ENC;
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
