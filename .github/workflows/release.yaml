@@ -61,7 +61,9 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     steps:
       - name: Checkout
-        uses: actions/checkout@master
+        uses: actions/checkout@main
+        with:
+          submodules: true
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
