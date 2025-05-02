@@ -1,6 +1,8 @@
 use mlua::Lua;
 
-use crate::{closure, metatable};
+mod closure;
+mod debug;
+mod metatable;
 
 pub fn initialise(state: &Lua) -> mlua::Result<()> {
     closure::register(state)?;

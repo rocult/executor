@@ -11,6 +11,8 @@ use once_cell::sync::OnceCell;
 use parking_lot::ReentrantMutex;
 use rbx::{Execution, JobOriginalVFn, TaskScheduler};
 
+mod safe;
+
 #[macro_export]
 macro_rules! import {
     ($($module:tt,)*) => {
@@ -43,10 +45,7 @@ macro_rules! import_register {
     };
 }
 
-mod closure;
 mod environment;
-mod extensions;
-mod metatable;
 mod rbx;
 
 pub static HB_ORIGINAL_VF: OnceCell<Arc<ReentrantMutex<JobOriginalVFn>>> = OnceCell::new();
