@@ -10,6 +10,7 @@ the advantages Rust does over C++.
 - [ ] 100% Stability
 - [ ] TP Handler
 - [ ] Basic custom functions
+- [ ] Output redirection
 
 ## Further goals
 
