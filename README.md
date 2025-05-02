@@ -19,9 +19,9 @@ the advantages Rust does over C++.
 
 ## Non-goals
 
-- [ ] Injection
+- Injection
     > This is a base, you must bring your injector
-- [ ] Undetected
+- Undetected
     > Open sourcing something undetected is begging it to be patched
 
 ## Credits
