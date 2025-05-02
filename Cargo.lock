@@ -200,13 +200,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dll"
-version = "0.1.0"
-dependencies = [
- "windows",
-]
-
-[[package]]
 name = "doctest-file"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -365,6 +358,14 @@ dependencies = [
  "cfg-if",
  "luau0-src",
  "pkg-config",
+]
+
+[[package]]
+name = "module"
+version = "0.1.0"
+dependencies = [
+ "base",
+ "windows",
 ]
 
 [[package]]

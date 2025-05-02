@@ -16,7 +16,7 @@ impl BytecodeEncoderVmt for RustBytecodeEncoder {
             let mut i = 0_isize;
             while i < count as isize {
                 let opcode = data.offset(i);
-                i += luau::getOpLength(*opcode as i32) as isize;
+                // i += luau::getOpLength(*opcode as i32) as isize;
                 *opcode *= 227;
             }
         }

@@ -103,7 +103,7 @@ impl Execution for Lua {
                         let context_object = get_context_object(script_context.offset(ScriptContext::CONTEXT_OBJECT), ThreadCapabilities::MAX as *const usize);
 
                         let set_proto_capabilities = *SET_PROTO_CAPABILITIES.get();
-                        set_proto_capabilities(proto.get(), context_object);
+                        // set_proto_capabilities(proto.get(), context_object);
                     }
 
                     // Continue the thread on the next heartbeat

@@ -1,4 +1,4 @@
-import_register!(
+super::import_register!(
     getrawmetatable,
     setrawmetatable,
     setreadonly,

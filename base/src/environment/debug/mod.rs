@@ -1,2 +1,2 @@
-import_register!(
+super::import_register!(
 );

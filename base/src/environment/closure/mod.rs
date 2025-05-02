@@ -1,1 +1,1 @@
-import_register!(iscclosure, islclosure,);
+super::import_register!(iscclosure, islclosure,);
