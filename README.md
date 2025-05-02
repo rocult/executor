@@ -12,18 +12,15 @@ the advantages Rust does over C++.
 - [ ] Basic custom functions
 - [ ] Output redirection
 
-## Further goals
-
-- [ ] 100% sUNC
-- [ ] replicatesignal
-- [ ] oth hook
-
 ## Non-goals
 
 - Injection
     > This is a base, you must bring your injector
 - Undetected
     > Open sourcing something undetected is begging it to be patched
+- 100% sUNC
+    > To avoid more copied executors, there will be almost no custom functions. However, the framework for them
+will be there.
 
 ## Credits
 
