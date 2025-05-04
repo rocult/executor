@@ -49,8 +49,6 @@ jobs:
   build:
     name: Build and Upload
     needs: draft-release
-    env:
-      LIBCLANG_PATH: "/usr/lib/x86_64-linux-gnu/"
     permissions:
       contents: write
     strategy:
