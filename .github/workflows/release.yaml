@@ -55,7 +55,7 @@ jobs:
       matrix:
         include:
           - target: x86_64-pc-windows-gnu
-            runs-on: ubuntu-latest
+            runs-on: windows-latest
             artifact_name: module.dll
             folder: module
     runs-on: ${{ matrix.runs-on }}
@@ -64,24 +64,6 @@ jobs:
         uses: actions/checkout@main
         with:
           submodules: true
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          profile: minimal
-          override: true
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: "./${{ matrix.folder }} -> target"
-
-      - name: Set up Clang
-        uses: egor-tensin/setup-clang@v1
-        with:
-          version: latest
-          platform: x64
 
       - name: Cross build binary
         uses: houseabsolute/actions-rust-cross@v1
