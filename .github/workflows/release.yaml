@@ -80,7 +80,7 @@ jobs:
       - name: Install Latest Clang
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang
+          sudo apt-get install -y libclang-dev
 
       - name: Cross build binary
         uses: houseabsolute/actions-rust-cross@v1
