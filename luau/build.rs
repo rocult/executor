@@ -1,6 +1,7 @@
 use std::{env, path::Path};
 
 use bindgen::Builder;
+use build_print::warn;
 
 include!("./src/update.rs");
 include!("./src/shuffles/mod.rs");
@@ -117,4 +118,6 @@ fn main() {
     // Write the modified bindings back to the file
     fs::write(&bindings_path, prettyplease::unparse(&syntax_tree))
         .expect("Couldn't write modified bindings!");
+
+    warn!("run");
 }
