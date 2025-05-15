@@ -1,9 +1,40 @@
 use std::{ffi::CString, io::{Cursor, Write}};
 
-use luau::compile::BytecodeEncoderVmt;
+use luau::{compile::BytecodeEncoderVmt, compiler::*};
 use mlua::Error;
 use vtable_rs::VPtr;
 use xxhash_rust::xxh32::xxh32;
+
+// Had to rewrite this since the Luau def is inlined
+fn get_op_length(opcode: i32) -> usize {
+    match opcode {
+        LOP_GETGLOBAL
+        | LOP_SETGLOBAL
+        | LOP_GETIMPORT
+        | LOP_GETTABLEKS
+        | LOP_SETTABLEKS
+        | LOP_NAMECALL
+        | LOP_JUMPIFEQ
+        | LOP_JUMPIFLE
+        | LOP_JUMPIFLT
+        | LOP_JUMPIFNOTEQ
+        | LOP_JUMPIFNOTLE
+        | LOP_JUMPIFNOTLT
+        | LOP_NEWTABLE
+        | LOP_SETLIST
+        | LOP_FORGLOOP
+        | LOP_LOADKX
+        | LOP_FASTCALL2
+        | LOP_FASTCALL2K
+        | LOP_FASTCALL3
+        | LOP_JUMPXEQKNIL
+        | LOP_JUMPXEQKB
+        | LOP_JUMPXEQKN
+        | LOP_JUMPXEQKS
+            => 2,
+        _ => 1,
+    }
+}
 
 #[derive(Default)]
 #[repr(C)]
@@ -16,7 +47,7 @@ impl BytecodeEncoderVmt for RustBytecodeEncoder {
             let mut i = 0_isize;
             while i < count as isize {
                 let opcode = data.offset(i);
-                // i += luau::getOpLength(*opcode as i32) as isize;
+                i += get_op_length(*opcode as i32) as isize;
                 *opcode *= 227;
             }
         }

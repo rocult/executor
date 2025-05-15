@@ -31,25 +31,25 @@ impl Deref for TaskJob {
 }
 
 pub struct TaskScheduler {
-    base: *const usize,
+    pub base: *const usize,
     lua_state: Option<Rc<Lua>>,
 }
 impl TaskScheduler {
     pub fn new() -> Self {
-        let get_task_scheduler = unsafe { *GET_TASK_SCHEDULER.get() };
         Self {
-            base: unsafe { get_task_scheduler() },
+            base: unsafe { (*GET_TASK_SCHEDULER)() },
             lua_state: None
         }
     }
 
     pub fn iter(&self) -> TaskSchedulerIterator {
         let base = self.base;
+        let off = std::mem::size_of::<*const ()>() as isize;
         unsafe {
             TaskSchedulerIterator {
                 base,
                 count: *(self.base.offset(Self::JOBS_START) as *const u64),
-                jobs_end: *(self.base.offset(Self::JOBS_END) as *const u64),
+                jobs_end: *(self.base.offset(Self::JOBS_START + off) as *const u64),
             }
         }
     }
@@ -112,15 +112,13 @@ impl TaskScheduler {
             .script_context()
             .map(|x| x.global_state())
             .ok_or(Error::runtime("unable to find global state"))?;
-        let get_global_state = unsafe { *GET_GLOBAL_STATE_FOR_INSTANCE.get() };
 
         // Call the function and add the decryption offset.
-        let state_addr = unsafe { get_global_state(global_state, state_index.as_mut_ptr(), actor_index.as_mut_ptr()) };
+        let state_addr = unsafe { GET_GLOBAL_STATE_FOR_INSTANCE(global_state, state_index.as_mut_ptr(), actor_index.as_mut_ptr()) };
         let full_addr = unsafe { state_addr.offset(ScriptContext::DECRYPT_STATE) };
 
         // Decrypt the state pointer into a lua_State pointer.
-        let decrypt_state = unsafe { *DECRYPT_STATE.get() };
-        let lua_state = Rc::new(unsafe { Lua::init_from_ptr(decrypt_state(full_addr) as *mut lua_State) });
+        let lua_state = Rc::new(unsafe { Lua::init_from_ptr(DECRYPT_STATE(full_addr) as *mut lua_State) });
         self.lua_state = Some(lua_state.clone());
         Ok(lua_state)
     }

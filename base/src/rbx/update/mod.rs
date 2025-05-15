@@ -2,29 +2,25 @@ import!(
     offsets,
 );
 
-use std::marker::PhantomData;
-
+use once_cell::sync::Lazy;
 use windows::Win32::System::LibraryLoader::GetModuleHandleA;
 
-pub struct RebaseOffset<T> {
-    offset: isize,
-    phantom: PhantomData<T>,
-}
-impl<T> RebaseOffset<T> {
-    pub const fn new(offset: isize) -> Self {
-        Self { offset, phantom: PhantomData }
+pub static BASE: Lazy<usize> = Lazy::new(|| {
+    let base = unsafe { GetModuleHandleA(None) };
+    if base.is_err() {
+        panic!("Failed to get module handle");
     }
-
-    pub unsafe fn get(&self) -> *const T {
-        let handle = GetModuleHandleA(None).unwrap();
-        handle.0.offset(self.offset) as *const T
-    }
-}
+    base.unwrap().0 as usize
+});
 
 macro_rules! import_offsets {
     ($($name:ident<$ty:ty> => $offset:expr),* $(,)?) => {
         $(
-            pub const $name: $crate::rbx::RebaseOffset<$ty> = $crate::rbx::RebaseOffset::new($offset);
+            pub static $name: ::once_cell::sync::Lazy<$ty> = ::once_cell::sync::Lazy::new(|| {
+                unsafe {
+                    std::mem::transmute::<usize, $ty>($crate::rbx::BASE.wrapping_add($offset))
+                }
+            });
         )*
     };
 }

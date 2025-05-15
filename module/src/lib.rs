@@ -1,15 +1,19 @@
-use windows::{core::{w, PCWSTR}, Win32::{Foundation::*, System::{LibraryLoader::{GetModuleHandleW, LoadLibraryW}, SystemServices::*, Threading::{CreateThread, THREAD_CREATE_RUN_IMMEDIATELY}}, UI::WindowsAndMessaging::{MessageBoxW, MB_OK, MESSAGEBOX_RESULT}}};
+use windows::{
+    core::{w, PCWSTR},
+    Win32::{
+        Foundation::{CloseHandle, HINSTANCE},
+        System::{
+            LibraryLoader::{GetModuleHandleW, LoadLibraryW},
+            SystemServices::{DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH},
+            Threading::{CreateThread, THREAD_CREATE_RUN_IMMEDIATELY}
+        },
+        UI::WindowsAndMessaging::{MessageBoxW, MB_OK, MESSAGEBOX_RESULT}
+    }
+};
 
 /// A stub for the forwarded function.
 #[unsafe(no_mangle)]
 fn run() {
-}
-
-type MPrint = unsafe extern "fastcall" fn(i32, *const i8) -> usize;
-fn rbx_print(base: usize, message: &str) {
-    let message = std::ffi::CString::new(message).unwrap();
-    let rbx_printf: MPrint = unsafe { std::mem::transmute(base + 0x16D2D00) };
-    unsafe { rbx_printf(0, message.as_ptr()) };
 }
 
 fn show_message(message: PCWSTR) -> MESSAGEBOX_RESULT {
@@ -41,11 +45,7 @@ fn attach() -> bool {
         return false;
     }
 
-    std::thread::spawn(move || {
-        rbx_print(base.unwrap(), "helloooo from rust");
-    }).join().unwrap();
-    true
-    // base::main().is_ok()
+    base::main().is_ok()
 }
 
 unsafe extern "system" fn attach_thread(_lp_param: *mut std::ffi::c_void) -> u32 {

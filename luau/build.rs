@@ -55,15 +55,10 @@ fn vm_bindings(out_dir: &Path) -> std::io::Result<()> {
 
 fn compiler_bindings(out_dir: &Path) -> std::io::Result<()> {
     cpp_bindings()
-		.allowlist_var("(LUA|lua)(u|U)?.*")
-        .allowlist_function(".*getOpLength.*")
-        .allowlist_item("LuauOpcode.*")
-        // .header("../official_luau/Compiler/include/Luau/BytecodeBuilder.h")
+        .allowlist_item(".*")
         .header("../official_luau/Common/include/Luau/BytecodeUtils.h")
         .clang_args([
-            "-I../official_luau/Ast/include",
             "-I../official_luau/Common/include",
-            "-I../official_luau/Compiler/include",
         ])
 		.derive_default(true)
 		.derive_copy(true)
@@ -79,21 +74,19 @@ fn main() {
     println!("cargo:rerun-if-changed=NULL");
 
     // Add (and update) VM shuffles
-    if !do_shuffles() {
-        return
-    }
-
-    // Do some replacements before bindgen
-    let official_luau_path = PathBuf::from("../official_luau");
-    for (file_path, replacements) in PRE_REPLACE {
-        let file_path = official_luau_path.join(file_path);
-        let mut file_content = read_to_string(&file_path).expect("failed to find file");
-
-        for (from, to) in replacements {
-            file_content = file_content.replace(from, to)
+    if do_shuffles() {
+        // Do some replacements before bindgen
+        let official_luau_path = PathBuf::from("../official_luau");
+        for (file_path, replacements) in PRE_REPLACE {
+            let file_path = official_luau_path.join(file_path);
+            let mut file_content = read_to_string(&file_path).expect("failed to find file");
+    
+            for (from, to) in replacements {
+                file_content = file_content.replace(from, to)
+            }
+    
+            fs::write(file_path, file_content).expect("failed to write file");
         }
-
-        fs::write(file_path, file_content).expect("failed to write file");
     }
 
     // Output the bindings

@@ -22,14 +22,13 @@ impl Instance {
 }
 
 impl DataModel {
-    pub const PADDING: isize = 0x10;
-    pub const INSTANCE: isize = 0x10;
+    pub const PADDING: isize = 0x118;
+    pub const INSTANCE: isize = 0x1A8;
 }
 
 impl ScriptContext {
-    pub const GLOBAL_STATE: isize = 0x10;
-    pub const DECRYPT_STATE: isize = 0x10;
-    pub const CONTEXT_OBJECT: isize = 0x10;
+    pub const GLOBAL_STATE: isize = 0x120;
+    pub const DECRYPT_STATE: isize = 0x88;
 }
 
 impl TaskJob {
@@ -38,20 +37,24 @@ impl TaskJob {
 
 impl TaskScheduler {
     pub const JOBS_START: isize = 0x198;
-    pub const JOBS_END: isize = 0x1A0;
 
-    pub const RENDER_VIEW: isize = 0x10;
+    pub const RENDER_VIEW: isize = 0x218;
 }
 
 import_offsets! {
-    GET_TASK_SCHEDULER<GetTaskSchedulerFn> => 0x0,
-    GET_GLOBAL_STATE_FOR_INSTANCE<GetGlobalStateForInstanceFn> => 0xD72200,
-    DECRYPT_STATE<DecryptStateFn> => 0x88,
-    LUA_VM_LOAD<LuaVmLoadFn> => 0x88,
-    GET_CONTEXT_OBJECT<GetContextObjectFn> => 0x88,
-    SET_PROTO_CAPABILITIES<SetProtoCapabilitiesFn> => 0x88,
-    TASK_DEFER<TaskDeferFn> => 0x88,
+    PRINT<PrintFn> => 0x16D2D00,
+    GET_TASK_SCHEDULER<GetTaskSchedulerFn> => 0x3735D70,
+    GET_GLOBAL_STATE_FOR_INSTANCE<GetGlobalStateForInstanceFn> => 0xF40490,
+    DECRYPT_STATE<DecryptStateFn> => 0xCCA300,
+    LUA_VM_LOAD<LuaVmLoadFn> => 0xCCCFB0,
+    SET_PROTO_CAPABILITIES<SetProtoCapabilitiesFn> => 0xDFC430,
+    TASK_DEFER<TaskDeferFn> => 0x1172FB0,
 }
+
+pub type PrintFn = unsafe extern "fastcall" fn(
+    arg0: c_int,
+    arg1: *const c_char,
+) -> *const usize;
 
 pub type GetTaskSchedulerFn = unsafe extern "fastcall" fn () -> *const usize;
 
@@ -71,11 +74,6 @@ pub type LuaVmLoadFn = unsafe extern "fastcall" fn(
     arg2: *const c_char,
     arg3: c_int
 ) -> c_int;
-
-pub type GetContextObjectFn = unsafe extern "fastcall" fn(
-    arg0: *const usize,
-    arg1: *const usize,
-) -> *const usize;
 
 pub type SetProtoCapabilitiesFn = unsafe extern "fastcall" fn(
     arg0: *const luau::Proto,
