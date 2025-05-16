@@ -9,7 +9,7 @@ const LUAU_VM_PATH: &'static str = "../official_luau/VM";
 const LUAU_VM_LUA_H_PATH: &'static str = concat!("../official_luau/VM", "/include/lua.h");
 
 fn insert_directives(lua_h: &mut String) -> bool {
-    if lua_h.contains("LUAVM_SHUFFLE_COMMA") {
+    if lua_h.contains("LUAU_SHUFFLE_COMMA") {
         return false;
     }
 
@@ -119,7 +119,7 @@ fn insert_calls(mut reader: BufReader<File>, mut writer: File) -> std::io::Resul
         // Begin the shuffle macro call.
         write!(
             writer,
-            "LUAVM_SHUFFLE{}(LUAVM_SHUFFLE_{},{}",
+            "LUAU_SHUFFLE{}(LUAU_SHUFFLE_{},{}",
             nonempty_count, sep_flag, delimiter
         )?;
 

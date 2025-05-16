@@ -11,7 +11,7 @@ const PRE_REPLACE: [(&str, [(&str, &str); 1]); 1] = [(
     "VM/src/lobject.h",
     [(
         "uint8_t tt; uint8_t marked; uint8_t memcat",
-        "LUAVM_SHUFFLE3(LUAVM_SHUFFLE_OTHER, uint8_t tt, uint8_t marked, uint8_t memcat)",
+        "LUAU_SHUFFLE3(LUAU_SHUFFLE_OTHER, uint8_t tt, uint8_t marked, uint8_t memcat)",
     )],
 )];
 
