@@ -63,11 +63,11 @@ impl TaskScheduler {
 
     pub fn iter(&self) -> TaskSchedulerIterator {
         let ptr_size = std::mem::size_of::<*const ()>();
-        let count = unsafe { *(self.base.wrapping_byte_add(Self::JOBS_START) as *const *const *const usize) };
-        let jobs_end = unsafe { *(count.wrapping_byte_add(ptr_size) as *const *const *const usize) };
-        let _ = println(PrintType::Info, format!("job start addr: {:#x}, job end addr: {:#x}", count as usize, jobs_end as usize));
+        let current = unsafe { *(self.base.wrapping_byte_add(Self::JOBS_START) as *const *const *const usize) };
+        let jobs_end = unsafe { *(current.wrapping_byte_add(ptr_size) as *const usize) };
+        let _ = println(PrintType::Info, format!("job start addr: {:#x}, job end addr: {:#x}", current as usize, jobs_end as usize));
         TaskSchedulerIterator {
-            count,
+            current,
             jobs_end,
         }
     }
@@ -143,15 +143,15 @@ impl TaskScheduler {
 }
 
 pub struct TaskSchedulerIterator {
-    count: *const *const usize,
-    jobs_end: *const *const usize,
+    current: *const *const usize,
+    jobs_end: usize,
 }
 impl Iterator for TaskSchedulerIterator {
     type Item = TaskJob;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = match self.count {
-            x if x >= self.jobs_end => {
+        let result = match self.current {
+            x if x as usize >= self.jobs_end => {
                 let _ = println(PrintType::Info, format!("end of jobs at address {:#x}", x as usize));
                 None
             },
@@ -161,7 +161,7 @@ impl Iterator for TaskSchedulerIterator {
             },
         };
 
-        self.count = self.count.wrapping_byte_add(0x10);
+        self.current = self.current.wrapping_byte_add(0x10);
         result
     }
 }
