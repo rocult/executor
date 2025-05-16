@@ -12,6 +12,7 @@ zstd = "0.13"
 xxhash-rust = { version = "0.8", features = ["xxh32"] }
 interprocess = "2.2"
 vtable-rs = "0.1"
+cxx = "1.0.158"
 
 [dependencies.windows]
 version = "0.*"

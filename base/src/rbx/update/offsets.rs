@@ -32,17 +32,18 @@ impl ScriptContext {
 }
 
 impl TaskJob {
-    pub const JOB_NAME: isize = 0x90;
+    pub const JOB_NAME: isize = 0x18;
 }
 
 impl TaskScheduler {
-    pub const JOBS_START: isize = 0x198;
+    pub const JOBS_START: isize = 0x1D0;
 
     pub const RENDER_VIEW: isize = 0x218;
 }
 
 import_offsets! {
     PRINT<PrintFn> => 0x16D2D00,
+    TASK_SCHEDULER<usize> => 0x69EA688,
     GET_TASK_SCHEDULER<GetTaskSchedulerFn> => 0x3735D70,
     GET_GLOBAL_STATE_FOR_INSTANCE<GetGlobalStateForInstanceFn> => 0xF40490,
     DECRYPT_STATE<DecryptStateFn> => 0xCCA300,

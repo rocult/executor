@@ -5,7 +5,7 @@ use parking_lot::lock_api::ReentrantMutex;
 
 use crate::HB_ORIGINAL_VF;
 
-use super::{RenderView, ScriptContext, DECRYPT_STATE, GET_GLOBAL_STATE_FOR_INSTANCE, GET_TASK_SCHEDULER};
+use super::{RenderView, ScriptContext, DECRYPT_STATE, GET_GLOBAL_STATE_FOR_INSTANCE, GET_TASK_SCHEDULER, TASK_SCHEDULER};
 
 pub type JobOriginalVFn = unsafe extern "fastcall" fn (
     arg0: *const usize,
@@ -13,12 +13,12 @@ pub type JobOriginalVFn = unsafe extern "fastcall" fn (
     arg2: *const usize,
 ) -> *const usize;
 
-pub struct TaskJob(*const usize);
+pub struct TaskJob(pub *const usize);
 impl TaskJob {
-    fn name(&self) -> Cow<'_, str> {
+    pub fn name(&self) -> String {
         unsafe {
-            let ptr = self.0.offset(Self::JOB_NAME) as *mut std::ffi::CString;
-            (*ptr).to_string_lossy()
+            let x = &*(self.0.offset(Self::JOB_NAME) as *const cxx::CxxString);
+            x.to_string()
         }
     }
 }
@@ -37,19 +37,17 @@ pub struct TaskScheduler {
 impl TaskScheduler {
     pub fn new() -> Self {
         Self {
-            base: unsafe { (*GET_TASK_SCHEDULER)() },
+            base: *TASK_SCHEDULER as *const usize,
             lua_state: None
         }
     }
 
     pub fn iter(&self) -> TaskSchedulerIterator {
-        let base = self.base;
-        let off = std::mem::size_of::<*const ()>() as isize;
+        let off = std::mem::size_of::<*const ()>() as isize; // 8
         unsafe {
             TaskSchedulerIterator {
-                base,
-                count: *(self.base.offset(Self::JOBS_START) as *const u64),
-                jobs_end: *(self.base.offset(Self::JOBS_START + off) as *const u64),
+                count: self.base.offset(Self::JOBS_START) as usize,
+                jobs_end: self.base.offset(Self::JOBS_START + off) as usize,
             }
         }
     }
@@ -125,19 +123,16 @@ impl TaskScheduler {
 }
 
 pub struct TaskSchedulerIterator {
-    base: *const usize,
-    jobs_end: u64,
-    count: u64,
+    count: usize,
+    jobs_end: usize,
 }
 impl Iterator for TaskSchedulerIterator {
     type Item = TaskJob;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = unsafe {
-            match self.count {
-                x if x as u64 > self.jobs_end => None,
-                x => Some(TaskJob(self.base.offset(x as isize))),
-            }
+        let result = match self.count {
+            x if x >= self.jobs_end => None,
+            x => Some(TaskJob(x as *const usize)),
         };
 
         self.count += 0x10;
