@@ -1,4 +1,3 @@
-
 #[cxx::bridge]
 pub mod ffi {
     struct CstrResultT {
@@ -17,7 +16,7 @@ pub mod ffi {
 pub enum A {
     A,
     B,
-    C((String, usize))
+    C((String, usize)),
 }
 
 // Helper function for Rust usage

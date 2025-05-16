@@ -36,8 +36,8 @@ fn cpp_bindings() -> Builder {
 
 fn vm_bindings(out_dir: &Path) -> std::io::Result<()> {
     cpp_bindings()
-		.header("../official_luau/VM/include/lua.h")
-		.header("../official_luau/VM/include/lualib.h")
+        .header("../official_luau/VM/include/lua.h")
+        .header("../official_luau/VM/include/lualib.h")
         .header("../official_luau/VM/src/lobject.h")
         .header("../official_luau/VM/src/lstate.h")
         .header("../official_luau/VM/src/lapi.h")
@@ -45,29 +45,27 @@ fn vm_bindings(out_dir: &Path) -> std::io::Result<()> {
             "-I../official_luau/VM/include",
             "-I../official_luau/Common/include",
         ])
-		.blocklist_function("luaO_pushvfstring")
+        .blocklist_function("luaO_pushvfstring")
         .blocklist_function("lua_pushvfstring")
-		.blocklist_type("va_list")
-		.generate()
-		.expect("Failed to generate VM bindings")
-		.write_to_file(out_dir.join("luau_vm.rs"))
+        .blocklist_type("va_list")
+        .generate()
+        .expect("Failed to generate VM bindings")
+        .write_to_file(out_dir.join("luau_vm.rs"))
 }
 
 fn compiler_bindings(out_dir: &Path) -> std::io::Result<()> {
     cpp_bindings()
         .allowlist_item(".*")
         .header("../official_luau/Common/include/Luau/BytecodeUtils.h")
-        .clang_args([
-            "-I../official_luau/Common/include",
-        ])
-		.derive_default(true)
-		.derive_copy(true)
-		.derive_partialeq(true)
-		.derive_eq(true)
-		.derive_hash(true)
-		.generate()
-		.expect("Failed to generate Compiler bindings")
-		.write_to_file(out_dir.join("luau_compiler.rs"))
+        .clang_args(["-I../official_luau/Common/include"])
+        .derive_default(true)
+        .derive_copy(true)
+        .derive_partialeq(true)
+        .derive_eq(true)
+        .derive_hash(true)
+        .generate()
+        .expect("Failed to generate Compiler bindings")
+        .write_to_file(out_dir.join("luau_compiler.rs"))
 }
 
 fn main() {
@@ -80,11 +78,11 @@ fn main() {
         for (file_path, replacements) in PRE_REPLACE {
             let file_path = official_luau_path.join(file_path);
             let mut file_content = read_to_string(&file_path).expect("failed to find file");
-    
+
             for (from, to) in replacements {
                 file_content = file_content.replace(from, to)
             }
-    
+
             fs::write(file_path, file_content).expect("failed to write file");
         }
     }

@@ -59,7 +59,7 @@ define_vm_types! {
     // CLOSURE_*_ENC
     Closure__bindgen_ty_1__bindgen_ty_1cont = CLOSURE_CONT_ENC;
     Closure__bindgen_ty_1__bindgen_ty_1debugname = CLOSURE_DEBUGNAME_ENC;
-    
+
     // CLOSURE_FUNC_ENC
     Closure__bindgen_ty_1__bindgen_ty_1f = CLOSURF_FUNC_ENC;
     Closure__bindgen_ty_1__bindgen_ty_2p = CLOSURF_FUNC_ENC;

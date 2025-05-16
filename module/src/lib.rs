@@ -1,30 +1,22 @@
 use windows::{
-    core::{w, PCWSTR},
     Win32::{
         Foundation::{CloseHandle, HINSTANCE},
         System::{
             LibraryLoader::{GetModuleHandleW, LoadLibraryW},
             SystemServices::{DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH},
-            Threading::{CreateThread, THREAD_CREATE_RUN_IMMEDIATELY}
+            Threading::{CreateThread, THREAD_CREATE_RUN_IMMEDIATELY},
         },
-        UI::WindowsAndMessaging::{MessageBoxW, MB_OK, MESSAGEBOX_RESULT}
-    }
+        UI::WindowsAndMessaging::{MB_OK, MESSAGEBOX_RESULT, MessageBoxW},
+    },
+    core::{PCWSTR, w},
 };
 
 /// A stub for the forwarded function.
 #[unsafe(no_mangle)]
-fn run() {
-}
+fn run() {}
 
 fn show_message(message: PCWSTR) -> MESSAGEBOX_RESULT {
-    unsafe {
-        MessageBoxW(
-            None,
-            message,
-            w!("Message"),
-            MB_OK,
-        )
-    }
+    unsafe { MessageBoxW(None, message, w!("Message"), MB_OK) }
 }
 
 fn attach() -> bool {
@@ -77,7 +69,7 @@ extern "system" fn DllMain(_: HINSTANCE, call_reason: u32, _: *mut ()) -> bool {
             }
 
             true
-        },
+        }
         DLL_PROCESS_DETACH => true,
         _ => true,
     }

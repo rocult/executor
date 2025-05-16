@@ -56,12 +56,7 @@ fn executor_thread(
 ) -> Result<()> {
     let print = |message_type: i32, message: &str| {
         let c_str = std::ffi::CString::new(message).unwrap();
-        unsafe {
-            PRINT(
-                message_type,
-                c_str.as_ptr() as *const i8,
-            )
-        }
+        unsafe { PRINT(message_type, c_str.as_ptr() as *const i8) }
     };
 
     // Initialise _G and shared globals to our own
@@ -107,15 +102,22 @@ fn executor_thread(
 pub fn main() -> Result<Thread> {
     let print = |message_type: i32, message: &str| {
         let c_str = std::ffi::CString::new(message).unwrap();
-        unsafe {
-            PRINT(message_type, c_str.as_ptr())
-        }
+        unsafe { PRINT(message_type, c_str.as_ptr()) }
     };
 
     // Initialise the scheduler
-    print(0, &format!("Initialising task scheduler from base {:#x}", *rbx::BASE));
+    print(
+        0,
+        &format!("Initialising task scheduler from base {:#x}", *rbx::BASE),
+    );
     let mut task_scheduler = TaskScheduler::new();
-    print(0, &format!("Task scheduler initialised at address {:#x}", task_scheduler.base as usize));
+    print(
+        0,
+        &format!(
+            "Task scheduler initialised at address {:#x}",
+            task_scheduler.base as usize
+        ),
+    );
 
     task_scheduler.iter().for_each(|x| {
         print(0, &format!("Task job: {:?}", x.0));
@@ -156,7 +158,7 @@ pub fn main() -> Result<Thread> {
     // // Keep thread active
     // Ok(thread)
 
-    loop { 
+    loop {
         std::thread::sleep(std::time::Duration::from_secs(1));
     }
 }

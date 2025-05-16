@@ -117,7 +117,11 @@ fn insert_calls(mut reader: BufReader<File>, mut writer: File) -> std::io::Resul
         };
 
         // Begin the shuffle macro call.
-        write!(writer, "LUAVM_SHUFFLE{}(LUAVM_SHUFFLE_{},{}", nonempty_count, sep_flag, delimiter)?;
+        write!(
+            writer,
+            "LUAVM_SHUFFLE{}(LUAVM_SHUFFLE_{},{}",
+            nonempty_count, sep_flag, delimiter
+        )?;
 
         // Write each buffered line, replacing ';' with ',' where needed.
         let buf_last = buffer.len().saturating_sub(1);
