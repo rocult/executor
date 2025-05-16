@@ -3,9 +3,9 @@ use std::{borrow::Cow, ffi::c_void, ops::Deref, rc::Rc, sync::Arc};
 use mlua::{lua_State, Lua, Result, Error};
 use parking_lot::lock_api::ReentrantMutex;
 
-use crate::HB_ORIGINAL_VF;
+use crate::{safe::{println, PrintType}, HB_ORIGINAL_VF};
 
-use super::{RenderView, ScriptContext, DECRYPT_STATE, GET_GLOBAL_STATE_FOR_INSTANCE, GET_TASK_SCHEDULER, TASK_SCHEDULER};
+use super::{RenderView, ScriptContext, CHECK_TASK_SCHEDULER, DECRYPT_STATE, GET_GLOBAL_STATE_FOR_INSTANCE, TASK_SCHEDULER, TASK_SCHEDULER_2};
 
 pub type JobOriginalVFn = unsafe extern "fastcall" fn (
     arg0: *const usize,
@@ -17,7 +17,18 @@ pub struct TaskJob(pub *const usize);
 impl TaskJob {
     pub fn name(&self) -> String {
         unsafe {
-            let x = &*(self.0.offset(Self::JOB_NAME) as *const cxx::CxxString);
+            let mut ptr = self.0.wrapping_byte_add(Self::JOB_NAME);
+
+            // If the job name is too long, it will be stored in a different location.
+            let indicator = *(self.0.wrapping_byte_add(0x30));
+            if indicator >= 0x10 {
+                ptr = *self.0 as *const usize;
+            }
+
+            // Get the job name via CxxString
+            let _ = println(PrintType::Info, format!("job name address: {:#x}", ptr as usize));
+            let x = &*(ptr as *const cxx::CxxString);
+            std::thread::sleep(std::time::Duration::from_millis(10000));
             x.to_string()
         }
     }
@@ -36,19 +47,28 @@ pub struct TaskScheduler {
 }
 impl TaskScheduler {
     pub fn new() -> Self {
+        let base = if unsafe { CHECK_TASK_SCHEDULER() } == 0 {
+            let _ = println(PrintType::Info, "task scheduler 2 detected");
+            *TASK_SCHEDULER_2 as *const usize
+        } else {
+            let _ = println(PrintType::Info, "task scheduler 1 detected");
+            *TASK_SCHEDULER as *const usize
+        };
+
         Self {
-            base: *TASK_SCHEDULER as *const usize,
+            base,
             lua_state: None
         }
     }
 
     pub fn iter(&self) -> TaskSchedulerIterator {
-        let off = std::mem::size_of::<*const ()>() as isize; // 8
-        unsafe {
-            TaskSchedulerIterator {
-                count: self.base.offset(Self::JOBS_START) as usize,
-                jobs_end: self.base.offset(Self::JOBS_START + off) as usize,
-            }
+        let ptr_size = std::mem::size_of::<*const ()>();
+        let count = unsafe { *(self.base.wrapping_byte_add(Self::JOBS_START) as *const *const *const usize) };
+        let jobs_end = unsafe { *(count.wrapping_byte_add(ptr_size) as *const *const *const usize) };
+        let _ = println(PrintType::Info, format!("job start addr: {:#x}, job end addr: {:#x}", count as usize, jobs_end as usize));
+        TaskSchedulerIterator {
+            count,
+            jobs_end,
         }
     }
 
@@ -123,19 +143,25 @@ impl TaskScheduler {
 }
 
 pub struct TaskSchedulerIterator {
-    count: usize,
-    jobs_end: usize,
+    count: *const *const usize,
+    jobs_end: *const *const usize,
 }
 impl Iterator for TaskSchedulerIterator {
     type Item = TaskJob;
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = match self.count {
-            x if x >= self.jobs_end => None,
-            x => Some(TaskJob(x as *const usize)),
+            x if x >= self.jobs_end => {
+                let _ = println(PrintType::Info, format!("end of jobs at address {:#x}", x as usize));
+                None
+            },
+            x => unsafe {
+                let _ = println(PrintType::Info, format!("got task job: {:#x} -> {:#x}", x as usize, *x as usize));
+                Some(TaskJob(*x))
+            },
         };
 
-        self.count += 0x10;
+        self.count = self.count.wrapping_byte_add(0x10);
         result
     }
 }

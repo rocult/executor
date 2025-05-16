@@ -32,11 +32,11 @@ impl ScriptContext {
 }
 
 impl TaskJob {
-    pub const JOB_NAME: isize = 0x18;
+    pub const JOB_NAME: usize = 0x18;
 }
 
 impl TaskScheduler {
-    pub const JOBS_START: isize = 0x1D0;
+    pub const JOBS_START: usize = 0x1D0;
 
     pub const RENDER_VIEW: isize = 0x218;
 }
@@ -44,7 +44,8 @@ impl TaskScheduler {
 import_offsets! {
     PRINT<PrintFn> => 0x16D2D00,
     TASK_SCHEDULER<usize> => 0x69EA688,
-    GET_TASK_SCHEDULER<GetTaskSchedulerFn> => 0x3735D70,
+    TASK_SCHEDULER_2<usize> => 0x69EAB28,
+    CHECK_TASK_SCHEDULER<CheckTaskSchedulerFn> => 0x3882280,
     GET_GLOBAL_STATE_FOR_INSTANCE<GetGlobalStateForInstanceFn> => 0xF40490,
     DECRYPT_STATE<DecryptStateFn> => 0xCCA300,
     LUA_VM_LOAD<LuaVmLoadFn> => 0xCCCFB0,
@@ -57,7 +58,7 @@ pub type PrintFn = unsafe extern "fastcall" fn(
     arg1: *const c_char,
 ) -> *const usize;
 
-pub type GetTaskSchedulerFn = unsafe extern "fastcall" fn () -> *const usize;
+pub type CheckTaskSchedulerFn = unsafe extern "fastcall" fn () -> u8;
 
 pub type GetGlobalStateForInstanceFn = unsafe extern "fastcall" fn(
     arg0: *const usize, 

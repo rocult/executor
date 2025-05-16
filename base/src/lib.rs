@@ -115,11 +115,11 @@ pub fn main() -> Result<Thread> {
     // Initialise the scheduler
     print(0, &format!("Initialising task scheduler from base {:#x}", *rbx::BASE));
     let mut task_scheduler = TaskScheduler::new();
-    print(0, &format!("Task scheduler initialised: {:#x} -> {:?}", (*rbx::GET_TASK_SCHEDULER) as usize, task_scheduler.base));
+    print(0, &format!("Task scheduler initialised at address {:#x}", task_scheduler.base as usize));
 
     task_scheduler.iter().for_each(|x| {
-        let name = unsafe { &*(x.0.offset(rbx::TaskJob::JOB_NAME) as *const cxx::CxxString) };
-        print(0, &format!("Task job: {:?} -> {} ({})", x.0, name.to_string(), name.len()));
+        print(0, &format!("Task job: {:?}", x.0));
+        // print(0, &format!("Task job name: {:?}", x.name()));
     });
     // let lua_state = task_scheduler.lua_state()?;
     // print(0, "Lua state initialised");
