@@ -6,6 +6,7 @@ use std::{
 };
 
 use interprocess::os::windows::named_pipe::RecvPipeStream;
+use logger::{setup_logger, prelude::*};
 use mlua::{Error, Lua, Result, Thread};
 use once_cell::sync::OnceCell;
 use parking_lot::ReentrantMutex;
@@ -24,6 +25,7 @@ macro_rules! import {
 }
 
 mod environment;
+mod logger;
 mod rbx;
 
 pub static HB_ORIGINAL_VF: OnceCell<Arc<ReentrantMutex<JobOriginalVFn>>> = OnceCell::new();
@@ -100,30 +102,23 @@ fn executor_thread(
 }
 
 pub fn main() -> Result<Thread> {
+    setup_logger()
+        .map_err(|err| Error::runtime(format!("failed to setup logger: {err}")))?;
+
     let print = |message_type: i32, message: &str| {
         let c_str = std::ffi::CString::new(message).unwrap();
         unsafe { PRINT(message_type, c_str.as_ptr()) }
     };
 
     // Initialise the scheduler
-    print(
-        0,
-        &format!("Initialising task scheduler from base {:#x}", *rbx::BASE),
-    );
+    info!("Initialising task scheduler from base {:#x}", *rbx::BASE);
     let mut task_scheduler = TaskScheduler::new();
-    print(
-        0,
-        &format!(
-            "Task scheduler initialised at address {:#x}",
-            task_scheduler.base as usize
-        ),
+    info!(
+        "Task scheduler initialised at address {}",
+        task_scheduler.base.rebase_display()
     );
 
-    task_scheduler.iter().for_each(|x| {
-        print(0, &format!("Task job: {:?}", x.0));
-        // print(0, &format!("Task job name: {:?}", x.name()));
-    });
-    // let lua_state = task_scheduler.lua_state()?;
+    let lua_state = task_scheduler.lua_state()?;
     // print(0, "Lua state initialised");
     // task_scheduler.hook_job("Heartbeat", heartbeat)?;
     // print(0, "Heartbeat job hooked");

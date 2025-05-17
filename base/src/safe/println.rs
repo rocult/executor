@@ -3,9 +3,10 @@ use std::ffi::{CString, NulError};
 use crate::rbx::PRINT;
 
 pub enum PrintType {
-    Info = 0,
-    Warning = 1,
-    Error = 2,
+    Normal = 0,
+    Info = 1,
+    Warning = 2,
+    Error = 3,
 }
 
 pub fn println<T: AsRef<str>>(print_type: PrintType, message: T) -> Result<(), NulError> {

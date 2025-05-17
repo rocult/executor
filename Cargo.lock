@@ -30,6 +30,7 @@ dependencies = [
  "cpp_interop",
  "cxx",
  "interprocess",
+ "log",
  "luau",
  "mlua",
  "once_cell",
