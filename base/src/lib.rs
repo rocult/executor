@@ -44,42 +44,30 @@ extern "fastcall" fn heartbeat(
     unsafe { vf(arg0, arg1, arg2) }
 }
 
-type MPrint = unsafe extern "fastcall" fn(i32, *const i8) -> usize;
-fn rbx_print(base: usize, message: &str) {
-    let message = std::ffi::CString::new(message).unwrap();
-    let rbx_printf: MPrint = unsafe { std::mem::transmute(base + 0x16D2D00) };
-    unsafe { rbx_printf(0, message.as_ptr()) };
-}
-
 fn executor_thread(
     task_scheduler: &TaskScheduler,
     state: &Lua,
     script_queue: Rc<Mutex<VecDeque<String>>>,
 ) -> Result<()> {
-    let print = |message_type: i32, message: &str| {
-        let c_str = std::ffi::CString::new(message).unwrap();
-        unsafe { PRINT(message_type, c_str.as_ptr() as *const i8) }
-    };
-
     // Initialise _G and shared globals to our own
-    print(0, "Initialising globals");
+    debug!("Initialising globals");
     let g_table = state.create_table()?;
     let shared = state.create_table()?;
     let globals = state.globals();
 
-    print(0, "Setting globals");
+    debug!("Setting globals");
     globals.set("_G", g_table)?;
     globals.set("shared", shared)?;
 
     // Initialise the environment
-    print(0, "Initialising environment");
+    debug!("Initialising environment");
     environment::initialise(state)?;
-    print(0, "Environment initialised");
+    debug!("Environment initialised");
 
     // Sandbox the thread to make stuff read only
-    print(0, "Sandboxing thread");
+    debug!("Sandboxing thread");
     state.sandbox(true)?;
-    print(0, "Thread sandboxed");
+    debug!("Thread sandboxed");
 
     // Ran on heartbeat
     let (tx, rx) = mpsc::channel::<()>();
@@ -87,12 +75,12 @@ fn executor_thread(
         .set(tx)
         .map_err(|_| Error::runtime("unable to set heartbeat tx"))?;
     while let Ok(_) = rx.recv() {
-        print(0, "Heartbeat");
+        debug!("Heartbeat");
         let mut script_queue = script_queue
             .lock()
             .map_err(|_| Error::runtime("failed to get lock on script queue"))?;
         if let Some(script) = script_queue.pop_front() {
-            print(0, "Running script");
+            debug!("Running script");
             if let Err(e) = state.send(script, true, 0, task_scheduler) {
                 println!("error: {e}");
             }
@@ -105,23 +93,20 @@ pub fn main() -> Result<Thread> {
     setup_logger()
         .map_err(|err| Error::runtime(format!("failed to setup logger: {err}")))?;
 
-    let print = |message_type: i32, message: &str| {
-        let c_str = std::ffi::CString::new(message).unwrap();
-        unsafe { PRINT(message_type, c_str.as_ptr()) }
-    };
-
     // Initialise the scheduler
-    info!("Initialising task scheduler from base {:#x}", *rbx::BASE);
+    debug!("initialising task scheduler from base {:#x}", *rbx::BASE);
     let mut task_scheduler = TaskScheduler::new();
-    info!(
-        "Task scheduler initialised at address {}",
+    debug!(
+        "task scheduler initialised at address {}",
         task_scheduler.base.rebase_display()
     );
 
+    std::thread::sleep(std::time::Duration::from_secs(3));
+
     let lua_state = task_scheduler.lua_state()?;
-    // print(0, "Lua state initialised");
+    debug!("Lua state initialised");
     // task_scheduler.hook_job("Heartbeat", heartbeat)?;
-    // print(0, "Heartbeat job hooked");
+    // debug!("Heartbeat job hooked");
 
     // // Handles creating and initialising the executor thread
     // let script_queue = Rc::new(Mutex::new(VecDeque::new()));
@@ -131,18 +116,18 @@ pub fn main() -> Result<Thread> {
     // })?;
 
     // // Create the executor thread
-    // print(0, "Creating executor thread");
+    // debug!("Creating executor thread");
     // let thread = lua_state.create_thread(f)?;
-    // print(0, "Executor thread created");
+    // debug!("Executor thread created");
 
     // // Keep reading from named pipe, for scripts to run
-    // print(0, "Waiting for scripts");
+    // debug!("Waiting for scripts");
     // let rx = RecvPipeStream::connect_by_path(r"\\.\pipe\rblx")
     //     .map_err(|err| Error::runtime(format!("unable to create named pipe: {err}")))?;
     // let mut rx = BufReader::new(rx);
     // let mut buffer = String::with_capacity(128);
     // while let Ok(_) = rx.read_to_string(&mut buffer) {
-    //     print(0, "got script");
+    //     debug!("got script");
     //     let mut script_queue = script_queue
     //         .lock()
     //         .map_err(|_| Error::runtime("failed to get lock on script queue"))?;

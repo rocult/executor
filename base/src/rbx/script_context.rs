@@ -12,6 +12,6 @@ impl Deref for ScriptContext {
 }
 impl ScriptContext {
     pub fn global_state(&self) -> *const usize {
-        unsafe { self.offset(Self::GLOBAL_STATE) }
+        unsafe { self.wrapping_byte_add(Self::GLOBAL_STATE) }
     }
 }

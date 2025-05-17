@@ -1,4 +1,4 @@
-use std::{borrow::Cow, ffi::c_void, ops::Deref, rc::Rc, sync::Arc};
+use std::{ffi::c_void, ops::Deref, rc::Rc, sync::Arc};
 
 use crate::logger::prelude::*;
 use mlua::{lua_State, Lua, Result, Error};
@@ -32,7 +32,6 @@ impl TaskJob {
                 name_field as *const cxx::CxxString
             };
 
-            info!("job name address: {:#x}", cxx_string_ptr as usize);
             let x = &*cxx_string_ptr;
             x.to_string()
         }
@@ -53,10 +52,10 @@ pub struct TaskScheduler {
 impl TaskScheduler {
     pub fn new() -> Self {
         let base_ptr = if unsafe { CHECK_TASK_SCHEDULER() } == 0 {
-            info!("task scheduler 2 detected");
+            debug!("using RawScheduler2");
             *TASK_SCHEDULER_2
         } else {
-            info!("task scheduler 1 detected");
+            debug!("using RawScheduler");
             *TASK_SCHEDULER
         };
 
@@ -72,12 +71,28 @@ impl TaskScheduler {
 
     fn render_view(&self) -> Option<RenderView> {
         self.job_by_name("RenderJob").map(|x| unsafe {
-            (*(x.offset(Self::RENDER_VIEW) as *const RenderView)).clone()
+            RenderView::from_raw(
+                *x.wrapping_byte_add(Self::RENDER_VIEW) as *const usize
+            )
         })
     }
 
     pub fn script_context(&self) -> Option<ScriptContext> {
-        self.render_view().map(|x| x.data_model()).and_then(|x| x.script_context())
+        self.render_view()
+            .inspect(|x| {
+                debug!("got render view: {:p}", x);
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            })
+            .map(|x| x.data_model())
+            .inspect(|x| {
+                debug!("got data model: {:p}", x);
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            })
+            .and_then(|x| x.script_context())
+            .inspect(|x| {
+                debug!("got script context: {:p}", x);
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            })
     } 
 
     pub fn hook_job(&self, name: &str, cycle: JobOriginalVFn) -> Result<()> {
@@ -122,16 +137,32 @@ impl TaskScheduler {
         // Get a pointer to the global state function.
         let global_state = self
             .script_context()
+            .inspect(|x| {
+                debug!("got script context: {:p}", x);
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            })
             .map(|x| x.global_state())
+            .inspect(|x| {
+                debug!("got global state: {:p}", x);
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            })
             .ok_or(Error::runtime("unable to find global state"))?;
+
+        debug!("got global state: {:p}", global_state);
 
         // Call the function and add the decryption offset.
         let state_addr = unsafe { GET_GLOBAL_STATE_FOR_INSTANCE(global_state, state_index.as_mut_ptr(), actor_index.as_mut_ptr()) };
-        let full_addr = unsafe { state_addr.offset(ScriptContext::DECRYPT_STATE) };
+        let full_addr = state_addr.wrapping_byte_add(ScriptContext::DECRYPT_STATE);
+
+        debug!("got decrypted state address: {:p}", full_addr);
 
         // Decrypt the state pointer into a lua_State pointer.
-        let lua_state = Rc::new(unsafe { Lua::init_from_ptr(DECRYPT_STATE(full_addr) as *mut lua_State) });
+        let lua_state_ptr = unsafe { DECRYPT_STATE(full_addr) as *mut lua_State };
+        let lua_state = Rc::new(unsafe { Lua::init_from_ptr(lua_state_ptr) });
         self.lua_state = Some(lua_state.clone());
+
+        debug!("got lua state: {:p}", lua_state_ptr);
+
         Ok(lua_state)
     }
 
@@ -140,12 +171,6 @@ impl TaskScheduler {
         let current_ptr = self.base.wrapping_byte_add(Self::JOBS_START) as *const *const *const usize;
         let current = unsafe { *current_ptr };
         let jobs_end = unsafe { *current_ptr.wrapping_byte_add(ptr_size) };
-        info!(
-            "task scheduler ptr: {}, jobs start: {}, end: {}",
-            current_ptr.rebase_display(),
-            current.rebase_display(),
-            jobs_end.rebase_display()
-        );
         TaskSchedulerIterator {
             current,
             jobs_end,
@@ -162,14 +187,8 @@ impl Iterator for TaskSchedulerIterator {
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = match self.current {
-            x if x >= self.jobs_end => {
-                info!("end of jobs at address {}", x.rebase_display());
-                None
-            },
-            x => {
-                // info!("got task job: {}", x.rebase_display());
-                Some(TaskJob(unsafe { *x }))
-            },
+            x if x >= self.jobs_end => None,
+            x => Some(TaskJob(unsafe { *x })),
         };
 
         self.current = self.current.wrapping_byte_add(0x10);

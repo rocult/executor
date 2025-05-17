@@ -12,6 +12,10 @@ impl Deref for RenderView {
     }
 }
 impl RenderView {
+    pub unsafe fn from_raw(base: *const usize) -> Self {
+        RenderView(Instance::from_raw(base))
+    }
+
     pub fn visual_engine(&self) -> VisualEngine {
         VisualEngine(self.parent())
     }
@@ -19,8 +23,8 @@ impl RenderView {
     pub fn data_model(&self) -> DataModel {
         unsafe {
             DataModel(
-                Instance(
-                    self.offset(DataModel::PADDING + DataModel::INSTANCE)
+                Instance::from_raw(
+                    self.wrapping_byte_add(DataModel::PADDING + DataModel::INSTANCE)
                 )
             )
         }

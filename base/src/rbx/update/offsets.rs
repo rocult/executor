@@ -8,27 +8,27 @@ use super::import_offsets;
 
 pub struct ExtraSpace;
 impl ExtraSpace {
-    pub const IDENTITY: isize = 0x30;
-    pub const CAPABILITIES: isize = 0x48;
-    pub const SCRIPT: isize = 0x50;
-    pub const ACTOR: isize = 0x58;
+    pub const IDENTITY: usize = 0x30;
+    pub const CAPABILITIES: usize = 0x48;
+    pub const SCRIPT: usize = 0x50;
+    pub const ACTOR: usize = 0x58;
 }
 
 impl Instance {
-    pub const PARENT: isize = 0x10;
-    pub const CHILDREN: isize = 0x70;
-    pub const CLASS_NAME: isize = 0x8;
-    pub const CLASS_DESCRIPTOR: isize = 0x18;
+    pub const PARENT: usize = 0x10;
+    pub const CHILDREN: usize = 0x70;
+    pub const CLASS_NAME: usize = 0x8;
+    pub const CLASS_DESCRIPTOR: usize = 0x18;
 }
 
 impl DataModel {
-    pub const PADDING: isize = 0x118;
-    pub const INSTANCE: isize = 0x1A8;
+    pub const PADDING: usize = 0x118;
+    pub const INSTANCE: usize = 0x1A8;
 }
 
 impl ScriptContext {
-    pub const GLOBAL_STATE: isize = 0x120;
-    pub const DECRYPT_STATE: isize = 0x88;
+    pub const GLOBAL_STATE: usize = 0x120;
+    pub const DECRYPT_STATE: usize = 0x88;
 }
 
 impl TaskJob {
@@ -38,7 +38,7 @@ impl TaskJob {
 impl TaskScheduler {
     pub const JOBS_START: usize = 0x1D0;
 
-    pub const RENDER_VIEW: isize = 0x218;
+    pub const RENDER_VIEW: usize = 0x218;
 }
 
 import_offsets! {

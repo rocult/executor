@@ -32,8 +32,8 @@ impl Execution for Lua {
     fn set_thread_identity(&self, identity: u8) -> Result<()> {
         unsafe {
             self.exec_raw((), |raw_state| {
-                let userdata_ptr = raw_state.offset(0x78);
-                let identity_ptr = userdata_ptr.offset(ExtraSpace::IDENTITY) as *mut i64;
+                let userdata_ptr = raw_state.wrapping_byte_add(0x78);
+                let identity_ptr = userdata_ptr.wrapping_byte_add(ExtraSpace::IDENTITY) as *mut i64;
                 *identity_ptr = identity as i64;
             })
         }
@@ -42,8 +42,8 @@ impl Execution for Lua {
     fn set_thread_capabilities(&self, capabilities: ThreadCapabilities) -> Result<()> {
         unsafe {
             self.exec_raw((), |raw_state| {
-                let userdata_ptr = raw_state.offset(0x78);
-                let capabilities_ptr = userdata_ptr.offset(ExtraSpace::CAPABILITIES) as *mut i64;
+                let userdata_ptr = raw_state.wrapping_byte_add(0x78);
+                let capabilities_ptr = userdata_ptr.wrapping_byte_add(ExtraSpace::CAPABILITIES) as *mut i64;
                 *capabilities_ptr = capabilities.into();
             })
         }

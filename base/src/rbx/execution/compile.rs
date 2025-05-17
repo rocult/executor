@@ -44,10 +44,10 @@ struct RustBytecodeEncoder {
 impl BytecodeEncoderVmt for RustBytecodeEncoder {
     extern "C" fn encode(&self, data: *mut u32, count: usize) {
         unsafe {
-            let mut i = 0_isize;
-            while i < count as isize {
-                let opcode = data.offset(i);
-                i += get_op_length(*opcode as i32) as isize;
+            let mut i = 0;
+            while i < count {
+                let opcode = data.wrapping_byte_add(i);
+                i += get_op_length(*opcode as i32);
                 *opcode *= 227;
             }
         }
