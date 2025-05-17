@@ -1,8 +1,8 @@
 use crate::define_vm_types;
 
 pub const SHUFFLES: &'static str = r#"
-#define LUAVM_SHUFFLE_COMMA ,
-#define LUAVM_SHUFFLE_OTHER ;
+#define LUAU_SHUFFLE_COMMA ,
+#define LUAU_SHUFFLE_OTHER ;
 
 #define LUAU_SHUFFLE3(s, a1, a2, a3) a1 s a2 s a3
 #define LUAU_SHUFFLE4(s, a1, a2, a3, a4) a3 s a2 s a1 s a4
