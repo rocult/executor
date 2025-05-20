@@ -68,22 +68,50 @@ fn compiler_bindings(out_dir: &Path) -> std::io::Result<()> {
         .write_to_file(out_dir.join("luau_compiler.rs"))
 }
 
-fn main() {
+fn build_cmake(official_luau_path: PathBuf) -> std::io::Result<()> {
+    // Statically link the Luau VM library
+    let cmake_folder = official_luau_path.join("cmake");
+    println!("cargo:rustc-link-search=native={}", cmake_folder.join("build").display());
+    println!("cargo:rustc-link-lib=static=Luau.VM");
+    println!("cargo:rustc-link-lib=static=Luau.Compiler");
+    println!("cargo:rustc-link-lib=static=Luau.Ast");
+
+    let mut cc_build = cc::Build::new();
+    cc_build.cpp(true);
+    cc_build.std("c++17");
+
+    // Initialise the cmake build
+    std::fs::create_dir_all(&cmake_folder)?;
+    cmake::Config::new(&official_luau_path)
+        .init_cxx_cfg(cc_build.clone())
+        .out_dir(&cmake_folder)
+        .generator("Ninja")
+        .build_target("Luau.VM;Luau.Compiler")
+        .define("CMAKE_BUILD_TYPE", "RelWithDebInfo")
+        .define("LUAU_STATIC_CRT", "ON")
+        .static_crt(true)
+        .build();
+
+    Ok(())
+}
+
+fn main() -> std::io::Result<()> {
     println!("cargo:rerun-if-changed=NULL");
 
     // Add (and update) VM shuffles
+    let manifest_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+    let official_luau_path = manifest_path.join("../official_luau");
     if do_shuffles() {
         // Do some replacements before bindgen
-        let official_luau_path = PathBuf::from("../official_luau");
         for (file_path, replacements) in PRE_REPLACE {
             let file_path = official_luau_path.join(file_path);
-            let mut file_content = read_to_string(&file_path).expect("failed to find file");
+            let mut file_content = read_to_string(&file_path)?;
 
             for (from, to) in replacements {
                 file_content = file_content.replace(from, to)
             }
 
-            fs::write(file_path, file_content).expect("failed to write file");
+            fs::write(file_path, file_content)?;
         }
     }
 
@@ -92,11 +120,11 @@ fn main() {
     let bindings_path = out_dir.join("luau_vm.rs");
 
     // Build raw bindings
-    compiler_bindings(&out_dir).unwrap();
-    vm_bindings(&out_dir).unwrap();
+    compiler_bindings(&out_dir)?;
+    vm_bindings(&out_dir)?;
 
     // Read the generated bindings
-    let mut bindings_content = fs::read_to_string(&bindings_path).expect("Couldn't read bindings!");
+    let mut bindings_content = fs::read_to_string(&bindings_path)?;
 
     // Modify the bindings to fix some issues
     for (from, to) in BINDINGS_REPLACE {
@@ -107,8 +135,8 @@ fn main() {
     do_encryptions(&mut syntax_tree);
 
     // Write the modified bindings back to the file
-    fs::write(&bindings_path, prettyplease::unparse(&syntax_tree))
-        .expect("Couldn't write modified bindings!");
+    fs::write(&bindings_path, prettyplease::unparse(&syntax_tree))?;
 
-    warn!("run");
+    // Build the Luau libraries
+    build_cmake(official_luau_path)
 }

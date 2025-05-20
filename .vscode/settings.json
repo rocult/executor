@@ -81,5 +81,6 @@
         "xtr1common": "cpp",
         "xtree": "cpp",
         "xutility": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "C:/Users/stefan/Documents/Backup/GitHub/rocult/executor/official_luau"
 }
