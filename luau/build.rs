@@ -1,9 +1,9 @@
 use std::{env, path::Path};
 
 use bindgen::Builder;
-use build_print::warn;
 
 include!("./src/update.rs");
+include!("./src/func_override/mod.rs");
 include!("./src/shuffles/mod.rs");
 include!("./src/encryptions/mod.rs");
 
@@ -114,6 +114,60 @@ fn main() -> std::io::Result<()> {
             fs::write(file_path, file_content)?;
         }
     }
+
+    let vm_dir = official_luau_path.join("VM/src");
+    do_func_override(&[
+        (
+            vm_dir.join("lgc.cpp"),
+            "size_t luaC_step(lua_State* L, bool assist)",
+            funcs::LUAC_STEP,
+        ),
+        (
+            vm_dir.join("ldo.cpp"),
+            "l_noret luaD_throw(lua_State* L, int errcode)",
+            funcs::LUAD_THROW, // need to cover both
+        ),
+        (
+            vm_dir.join("lapi.cpp"),
+            "const TValue* luaA_toobject(lua_State* L, int idx)",
+            funcs::LUAA_TOOBJECT,
+        ),
+        (
+            vm_dir.join("laux.cpp"),
+            "const char* luaL_checklstring(lua_State* L, int narg, size_t* len)",
+            funcs::LUAL_CHECKLSTRING,
+        ),
+        (
+            vm_dir.join("laux.cpp"),
+            "int luaL_getmetafield(lua_State* L, int obj, const char* event)",
+            funcs::LUAL_GETMETAFIELD,
+        ),
+        (
+            vm_dir.join("laux.cpp"),
+            "void luaL_register(lua_State* L, const char* libname, const luaL_Reg* l)",
+            funcs::LUAL_REGISTER,
+        ),
+        (
+            vm_dir.join("lmem.cpp"),
+            "void luaM_visitgco(lua_State* L, void* context, bool (*visitor)(void* context, lua_Page* page, GCObject* gco))",
+            funcs::LUAM_VISITGCO,
+        ),
+        (
+            vm_dir.join("lobject.cpp"),
+            "const char* luaO_pushvfstring(lua_State* L, const char* fmt, va_list argp)",
+            funcs::LUAO_PUSHVFSTRING, 
+        ),
+        (
+            vm_dir.join("lvmload.cpp"),
+            "int luau_load(lua_State* L, const char* chunkname, const char* data, size_t size, int env)",
+            funcs::LUAU_LOAD,
+        ),
+        (
+            vm_dir.join("lvmexecute.cpp"),
+            "void luau_execute(lua_State* L)",
+            funcs::LUAU_EXECUTE,
+        )
+    ])?;
 
     // Output the bindings
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());

@@ -14,6 +14,9 @@ pub mod compiler {
 
 include!(concat!(env!("OUT_DIR"), "/luau_vm.rs"));
 
+mod func_override;
+pub use func_override::*;
+
 mod encryptions;
 pub use encryptions::*;
 

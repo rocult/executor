@@ -1,5 +1,18 @@
 use crate::define_vm_types;
 
+pub mod funcs {
+    pub const LUAA_TOOBJECT: usize = 0x25A0540;
+    pub const LUAC_STEP: usize = 0x25B08D0;
+    pub const LUAD_THROW: usize = 0x25B0DE0;
+    pub const LUAL_CHECKLSTRING: usize = 0x25A3ED0;
+    pub const LUAL_GETMETAFIELD: usize = 0x25A43D0;
+    pub const LUAL_REGISTER: usize = 0x25A5D80;
+    pub const LUAM_VISITGCO: usize = 0x25F93B0;
+    pub const LUAO_PUSHVFSTRING: usize = 0x260E9F0;
+    pub const LUAU_LOAD: usize = 0xAD32E0;
+    pub const LUAU_EXECUTE: usize = 0x25E3B50;
+}
+
 pub const SHUFFLES: &'static str = r#"
 #define LUAU_SHUFFLE_COMMA ,
 #define LUAU_SHUFFLE_OTHER ;
