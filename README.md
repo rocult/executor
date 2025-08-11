@@ -3,7 +3,7 @@
 A Roblox executor base written engirely in Rust, aiming to be an initial proof of concept. Open sourced to be as a learning resource, as a way to give back to the resources I used to learn. The idea is that if the executor is Rust-based, it'll have all
 the advantages Rust does over C++.
 
-## ⚠️NOTICE
+## ⚠️ NOTICE ⚠️
 
 I do not work on this anymore, I might pick it up in the future, but it **does not** work in its current state.
 
